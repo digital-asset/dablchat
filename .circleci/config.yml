@@ -1,0 +1,54 @@
+#
+# Copyright (c) 2020, Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+
+version: 2.1
+
+commands:
+  install_sdk:
+    description: "Install the DAML SDK"
+    parameters:
+      version:
+        type: string
+    steps:
+      - run:
+          command: |
+            cd ${HOME}
+            wget https://github.com/digital-asset/daml/releases/download/v<< parameters.version >>/daml-sdk-<< parameters.version >>-linux.tar.gz
+            tar -zxvf daml-sdk-<< parameters.version >>-linux.tar.gz
+            cd sdk-<< parameters.version >>
+            ./install.sh
+            cd ${HOME}
+            rm -rf sdk-<< parameters.version >>
+
+
+jobs:
+  build:
+    docker:
+     - image: circleci/python:3-node
+
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - daml-{{ checksum "daml.yaml" }}
+      - run:
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends openjdk-11-jdk=11.0.6+10-1~deb10u1
+      - install_sdk:
+          version: "0.13.36"
+      - save_cache:
+          paths:
+            - ~/.daml
+          key: daml-{{ checksum "daml.yaml" }}
+      - run:
+          command: |
+            sudo pip install pipenv
+            pipenv install
+      - run:
+          command: |
+            export PATH=${HOME}/.daml/bin:${PATH}
+            make clean
+            make package

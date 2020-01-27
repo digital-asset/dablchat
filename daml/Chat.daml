@@ -1,0 +1,204 @@
+daml 1.2
+module Chat where
+
+import DA.List
+
+template Operator
+  with
+    operator : Party
+  where
+    signatory operator
+
+    key operator : Party
+    maintainer key
+
+    controller operator can
+      nonconsuming OperatorInviteUser : ContractId UserInvitation
+        with
+          user : Party
+        do
+          create UserInvitation with ..
+
+
+template UserInvitation
+  with
+    operator : Party
+    user : Party
+  where
+    signatory operator
+
+    controller user can
+      UserInvitationAccept : ContractId User
+        do
+          create User with ..
+
+      UserInvitationReject : ()
+        do return ()
+
+
+template User
+  with
+    operator : Party
+    user : Party
+  where
+    signatory operator, user
+
+    key (operator, user) : (Party, Party)
+    maintainer key._1
+
+    controller user can
+      nonconsuming UserRequestPublicChat : ContractId CreateChatRequest
+        with
+          name : Text
+          topic : Optional Text
+        do
+          create CreateChatRequest with members = [], isPublic = True, ..
+
+      nonconsuming UserRequestPrivateChat : ContractId CreateChatRequest
+        with
+          name : Text
+          members : [Text]
+          topic : Optional Text
+        do
+          create CreateChatRequest with isPublic = False, ..
+
+      nonconsuming UserUpdateMemberAlias : Optional (ContractId MemberAlias)
+        with
+          member : Party
+          alias : Text
+        do
+          optAliasCid <- lookupByKey @MemberAlias (user, member)
+          case optAliasCid of
+            Some cid | alias /= "" -> do
+                newCid <- exercise cid MemberAliasRename with newAlias = alias
+                return $ Some newCid
+            Some cid | alias == "" -> do
+              archive cid
+              return None
+            None | alias /= "" -> do
+              cid <- create MemberAlias with ..
+              return $ Some cid
+            _ -> return None
+
+    controller operator can
+      UserOffboard : ()
+        do return ()
+
+
+template Message
+  with
+    sender : Party
+    postedAt : Text
+    message : Text
+    recipients : [Party]
+    chatId : Text
+  where
+    signatory sender
+    observer recipients
+
+
+template CreateChatRequest
+  with
+    operator : Party
+    user : Party
+    name : Text
+    topic : Optional Text
+    isPublic : Bool
+    members : [Text]
+  where
+    signatory operator, user
+
+    controller operator can
+      CreateChatRequestRespond : Optional (ContractId Chat)
+        with
+          partyMembers : [Party]
+          chatId : Text
+        do
+          optChatCid <- lookupByKey @Chat (operator, name)
+          case (optChatCid, isPublic) of
+            (Some _, True) -> return None
+            _ -> do
+              chatCid <- create Chat with creator = user, members = dedup (user :: partyMembers), ..
+              return $ Some chatCid
+
+      CreateChatRequestReject : ()
+        do return ()
+
+
+template MemberAlias
+  with
+    user : Party
+    member : Party
+    alias : Text
+  where
+    signatory user
+
+    key (user, member) : (Party, Party)
+    maintainer key._1
+
+    controller user can
+      MemberAliasRename : ContractId MemberAlias
+        with
+          newAlias : Text
+        do
+          create this with alias = newAlias
+
+
+template Chat
+  with
+    operator : Party
+    creator : Party
+    members : [Party]
+    name : Text
+    topic : Optional Text
+    chatId : Text
+    isPublic : Bool
+  where
+    let chatSignatory = if isPublic then operator else creator
+    signatory chatSignatory
+    observer members
+
+    key (chatSignatory, name) : (Party, Text)
+    maintainer key._1
+
+    nonconsuming choice ChatPostMessage : ContractId Message
+      with
+        poster : Party
+        message : Text
+        postedAt : Text
+      controller poster
+      do
+        assert (elem poster members)
+        create Message with sender = poster, recipients = members, ..
+
+    choice ChatAddMembers : ContractId Chat
+      with
+        member : Party
+        newMembers : [Party]
+      controller member
+      do
+        assert (isPublic || member == creator)
+        assert (not $ all (\nm -> elem nm members) newMembers)
+        create this with members = dedup $ newMembers ++ members
+
+    choice ChatRemoveMembers : ContractId Chat
+      with
+        member : Party
+        membersToRemove : [Party]
+      controller member
+      do
+        assert (member == creator || (dedup membersToRemove) == [member])
+        assert (or $ map (\nm -> elem nm members) membersToRemove)
+        create this with members = filter (\m -> not (elem m membersToRemove)) members
+
+    controller creator can
+      ChatRename : ContractId Chat
+        with
+          newName : Text
+          newTopic : Optional Text
+        do
+          assert (newName /= name || newTopic /= topic)
+          create this with name = newName, topic = newTopic
+
+      ChatArchive : ()
+        do return ()
