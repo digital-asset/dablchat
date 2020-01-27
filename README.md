@@ -1,9 +1,9 @@
 <img src="./src/icons/chatface.svg" width="20%" height="auto">
 
 # DABL Chat
-[![Download](https://img.shields.io/github/release/dimitri-da/dablchat.svg)](https://github.com/dimitri-da/dablchat/releases/latest)
+[![Download](https://img.shields.io/github/release/digital-asset/dablchat.svg)](https://github.com/digital-asset/dablchat/releases/latest)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE)
-[![CircleCI](https://circleci.com/gh/dimitri-da/dablchat.svg?style=svg)](https://circleci.com/gh/dimitri-da/dablchat)
+[![CircleCI](https://circleci.com/gh/digital-asset/dablchat.svg?style=svg)](https://circleci.com/gh/digital-asset/dablchat)
 
 Welcome to DABL Chat! A DAML app that can be deployed to [project:DABL](https://projectdabl.com/).
 
@@ -25,12 +25,12 @@ Welcome to DABL Chat! A DAML app that can be deployed to [project:DABL](https://
 
 Log in to [project:DABL](https://projectdabl.com/) and create a new ledger under an existing or a new project.
 
-> ℹ️ Steps 2 and 3 are only necessary if you want to build the source code. If all you care about is deploying the app then download [dabl-chat.zip](https://github.com/dimitri-da/dablchat/releases/latest/download/dabl-chat.zip) and proceed to step 4.
+> ℹ️ Steps 2 and 3 are only necessary if you want to build the source code. If all you care about is deploying the app then download [dabl-chat.zip](https://github.com/digital-asset/dablchat/releases/latest/download/dabl-chat.zip) and proceed to step 4.
 
 ### 2. Clone this repo
 
 ```bash
-git clone https://github.com/dimitri-da/dablchat.git
+git clone https://github.com/digital-asset/dablchat.git
 ```
 
 ### 3. Build your DAML model and automation
