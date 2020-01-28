@@ -1,6 +1,6 @@
 {
   "name": "dablchat",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "private": true,
   "dependencies": {
     "@webscopeio/react-textarea-autocomplete": "^4.6.1",

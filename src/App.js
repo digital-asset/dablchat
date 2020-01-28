@@ -60,8 +60,8 @@ const commands = [
     description: "rename a chat. (You must be the creator of the chat)"
   },
   {
-    command: "/alias @user [new name]",
-    description: "Map a name to a user, visible only to you. Empty name removes the alias)"
+    command: "/alias [@user] [new name]",
+    description: "Map a name to a user, visible only to you. Empty user defaults to you, empty name removes the alias)"
   },
   {
     command: "/archive [#chat-id]",
@@ -368,9 +368,10 @@ class App extends Component {
         break;
       case 'alias':
         const aliasMember = words.filter(w => w.startsWith("@")).map(w => w.slice(1));
-        if (aliasMember.length !== 1) return alert("exactly one @user is required");
+        if (aliasMember.length > 1) return alert("at most one @user is required");
         const alias = words.filter(w => !w.startsWith("@"));
-        this.chatManager.updateAliasForMember(chatUser, aliasMember[0], alias.join(' '))
+        this.chatManager.updateAliasForMember(chatUser,
+          aliasMember.length === 0 ? chatUser.user : aliasMember[0], alias.join(' '))
         break;
       case 'rename':
         const chatIdToRename = words.find(w => w.startsWith("#")) || (currentChat && `#${currentChat.chatId}`) || '';
@@ -502,7 +503,7 @@ class App extends Component {
                     </tr>
                     <tr>
                         <td>Map a name to a user</td>
-                        <td><code>/alias @user [your alias]</code></td>
+                        <td><code>/alias [@user] [your alias]</code></td>
                     </tr>
                     <tr>
                         <th>If you create a chat, you can:</th>
