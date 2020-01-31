@@ -26,15 +26,15 @@ async function ChatManager(party, token, updateUser, updateState) {
     return fetch('//' + siteSubDomain() + url, options);
   }
 
-  const ledgerPartyTemplate = { moduleName: 'DABL.Ledger.V2', entityName: 'LedgerParty' }
-  const userTemplate = { moduleName: 'Chat', entityName: 'User' }
-  const userInvitationTemplate = { moduleName: 'Chat', entityName: 'UserInvitation' }
-  const chatTemplate = { moduleName: 'Chat', entityName: 'Chat' }
-  const messageTemplate = { moduleName: 'Chat', entityName: 'Message' }
-  const memberAliasTemplate = { moduleName: 'Chat', entityName: 'MemberAlias' }
+  const ledgerPartyTemplate = 'DABL.Ledger.V2:LedgerParty'
+  const userTemplate = 'Chat:User'
+  const userInvitationTemplate = 'Chat:UserInvitation'
+  const chatTemplate = 'Chat:Chat'
+  const messageTemplate = 'Chat:Message'
+  const memberAliasTemplate = 'Chat:MemberAlias'
 
   const userContractsResponse = await post('/contracts/search', {
-    body: JSON.stringify({ '%templates': [ ledgerPartyTemplate, userTemplate, userInvitationTemplate ]})
+    body: JSON.stringify({ 'templateIds': [ ledgerPartyTemplate, userTemplate, userInvitationTemplate ]})
   })
 
   switch (userContractsResponse.status) {
@@ -48,33 +48,28 @@ async function ChatManager(party, token, updateUser, updateState) {
   }
 
   const userContracts = await userContractsResponse.json();
+  console.log(userContracts)
 
   try {
-    const ledgerParties = userContracts.result.filter(up =>
-      up.templateId.moduleName === ledgerPartyTemplate.moduleName &&
-      up.templateId.entityName === ledgerPartyTemplate.entityName);
-    const users = userContracts.result.filter(u =>
-      u.templateId.moduleName === userTemplate.moduleName &&
-      u.templateId.entityName === userTemplate.entityName);
-    const userInvites = userContracts.result.filter(ui =>
-      ui.templateId.moduleName === userInvitationTemplate.moduleName &&
-      ui.templateId.entityName === userInvitationTemplate.entityName);
+    const ledgerParties = userContracts.result.filter(up => up.templateId.endsWith(ledgerPartyTemplate));
+    const users = userContracts.result.filter(u => u.templateId.endsWith(userTemplate));
+    const userInvites = userContracts.result.filter(ui => ui.templateId.endsWith(userInvitationTemplate));
 
-    const ledgerParty = ledgerParties.find(lp => lp.argument.party === party)
+    const ledgerParty = ledgerParties.find(lp => lp.payload.party === party)
     if (!ledgerParty) {
       throw new Error(`Could not match party ${party} to provided token!`)
     }
 
-    const user = users.find(u => u.argument.user === ledgerParty.argument.party)
-      || userInvites.find(ui => ui.argument.user === ledgerParty.argument.party);
+    const user = users.find(u => u.payload.user === ledgerParty.payload.party)
+      || userInvites.find(ui => ui.payload.user === ledgerParty.payload.party);
 
     if (!user) {
-      throw new Error(`User ${ledgerParty.argument.partyName} has not been onboarded to this app!`)
+      throw new Error(`User ${ledgerParty.payload.partyName} has not been onboarded to this app!`)
     }
 
-    const onboarded = user.templateId.entityName === userTemplate.entityName;
+    const onboarded = user.templateId.endsWith(userTemplate);
 
-    updateUser(ledgerParty.argument, Object.assign({}, {...user.argument, contractId: user.contractId}), onboarded);
+    updateUser(ledgerParty.payload, Object.assign({}, {...user.payload, contractId: user.contractId}), onboarded);
   } catch(e) {
     console.error(e)
   }
@@ -82,46 +77,38 @@ async function ChatManager(party, token, updateUser, updateState) {
   const fetchUpdate = async () => {
     try {
       const allContractsResponse = await post('/contracts/search', {
-        body: JSON.stringify({ '%templates': [chatTemplate, messageTemplate, userTemplate, memberAliasTemplate] })
+        body: JSON.stringify({ 'templateIds': [chatTemplate, messageTemplate, userTemplate, memberAliasTemplate] })
       })
 
       const allContracts = await allContractsResponse.json();
 
-      const chats = allContracts.result.filter(cm =>
-        cm.templateId.moduleName === chatTemplate.moduleName &&
-        cm.templateId.entityName === chatTemplate.entityName);
-      const messages = allContracts.result.filter(cm =>
-        cm.templateId.moduleName === messageTemplate.moduleName &&
-        cm.templateId.entityName === messageTemplate.entityName);
-      const user = allContracts.result.find(cm =>
-        cm.templateId.moduleName === userTemplate.moduleName &&
-        cm.templateId.entityName === userTemplate.entityName);
-      const memberAliases = allContracts.result.filter(cm =>
-        cm.templateId.moduleName === memberAliasTemplate.moduleName &&
-        cm.templateId.entityName === memberAliasTemplate.entityName);
+      const chats = allContracts.result.filter(c => c.templateId.endsWith(chatTemplate));
+      const messages = allContracts.result.filter(m => m.templateId.endsWith(messageTemplate));
+      const user = allContracts.result.find(u => u.templateId.endsWith(userTemplate));
+      const memberAliases = allContracts.result.filter(ma => ma.templateId.endsWith(memberAliasTemplate));
 
       const model = chats
-        .sort((c1, c2) => c1.argument.name > c2.argument.name ? 1 : c1.argument.name < c2.argument.name ? -1 : 0)
+        .sort((c1, c2) => c1.payload.name > c2.payload.name ? 1 : c1.payload.name < c2.payload.name ? -1 : 0)
         .map(c => {
-          const chatMessages = messages.filter(m => m.argument.chatId === c.argument.chatId)
-            .sort((m1, m2) => m1.argument.postedAt > m2.argument.postedAt ? 1 : m1.argument.postedAt < m2.argument.postedAt ? -1 : 0)
-            .map(m => Object.assign({}, {...m.argument, contractId: m.contractId}));
+          const chatMessages = messages.filter(m => m.payload.chatId === c.payload.chatId)
+            .sort((m1, m2) => m1.payload.postedAt > m2.payload.postedAt ? 1 : m1.payload.postedAt < m2.payload.postedAt ? -1 : 0)
+            .map(m => Object.assign({}, {...m.payload, contractId: m.contractId}));
           return {
             contractId: c.contractId,
-            chatId: c.argument.chatId,
+            chatId: c.payload.chatId,
             chatMessages,
-            chatCreator: c.argument.creator,
-            chatMembers: c.argument.members,
-            chatName: c.argument.name,
-            chatTopic: c.argument.topic || '',
-            isPublic: c.argument.isPublic
+            chatCreator: c.payload.creator,
+            chatMembers: c.payload.members,
+            chatName: c.payload.name,
+            chatTopic: c.payload.topic || '',
+            isPublic: c.payload.isPublic
           };
         });
 
       const aliases = {}
-      memberAliases.forEach((c) => aliases[c.argument.member] = c.argument.alias)
+      memberAliases.forEach((c) => aliases[c.payload.member] = c.payload.alias)
 
-      updateState(Object.assign({}, {...user.argument, contractId: user.contractId}), model, aliases);
+      updateState(Object.assign({}, {...user.payload, contractId: user.contractId}), model, aliases);
 
     } catch (e) {
       console.error("Could not fetch contracts!", e)
