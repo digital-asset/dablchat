@@ -32,7 +32,7 @@ const Login = props => {
           <label className="username-label" htmlFor="username">
             Party
           </label>
-          <input className="username-input" type="text" id="username" name="partyName" value={partyName} onChange={handleUserInput} placeholder="Party Name"/>
+          <input className="username-input" type="text" id="username" name="partyName" value={partyName} onChange={handleUserInput} placeholder="Party ID"/>
           <label className="username-label" htmlFor="username">
             Token
           </label>
@@ -44,7 +44,7 @@ const Login = props => {
             name="token"
             value={token}
             onChange={handleTokenInput}
-            placeholder="JWT Token"
+            placeholder="Party JWT"
           />
           <button type="submit" className="submit-btn">
             Submit

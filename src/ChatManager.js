@@ -31,7 +31,8 @@ async function ChatManager(party, token, updateUser, updateState) {
   const userInvitationTemplate = 'Chat:UserInvitation'
   const chatTemplate = 'Chat:Chat'
   const messageTemplate = 'Chat:Message'
-  const memberAliasTemplate = 'Chat:MemberAlias'
+  const selfAliasTemplate = 'Chat:SelfAlias'
+  const addressBookTemplate = 'Chat:AddressBook'
 
   const userContractsResponse = await post('/contracts/search', {
     body: JSON.stringify({ 'templateIds': [ ledgerPartyTemplate, userTemplate, userInvitationTemplate ]})
@@ -77,7 +78,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   const fetchUpdate = async () => {
     try {
       const allContractsResponse = await post('/contracts/search', {
-        body: JSON.stringify({ 'templateIds': [chatTemplate, messageTemplate, userTemplate, memberAliasTemplate] })
+        body: JSON.stringify({ 'templateIds': [chatTemplate, messageTemplate, userTemplate, addressBookTemplate, selfAliasTemplate] })
       })
 
       const allContracts = await allContractsResponse.json();
@@ -85,7 +86,8 @@ async function ChatManager(party, token, updateUser, updateState) {
       const chats = allContracts.result.filter(c => c.templateId.endsWith(chatTemplate));
       const messages = allContracts.result.filter(m => m.templateId.endsWith(messageTemplate));
       const user = allContracts.result.find(u => u.templateId.endsWith(userTemplate));
-      const memberAliases = allContracts.result.filter(ma => ma.templateId.endsWith(memberAliasTemplate));
+      const selfAlias = allContracts.result.find(ma => ma.templateId.endsWith(selfAliasTemplate));
+      const addressBook = allContracts.result.find(ma => ma.templateId.endsWith(addressBookTemplate));
 
       const model = chats
         .sort((c1, c2) => c1.payload.name > c2.payload.name ? 1 : c1.payload.name < c2.payload.name ? -1 : 0)
@@ -105,8 +107,10 @@ async function ChatManager(party, token, updateUser, updateState) {
           };
         });
 
-      const aliases = {}
-      memberAliases.forEach((c) => aliases[c.payload.member] = c.payload.alias)
+      let aliases = Object.assign({}, addressBook.payload.contacts.textMap);
+      if (selfAlias) {
+        aliases[selfAlias.payload.user] = selfAlias.payload.alias;
+      }
 
       updateState(Object.assign({}, {...user.payload, contractId: user.contractId}), model, aliases);
 
@@ -200,16 +204,53 @@ async function ChatManager(party, token, updateUser, updateState) {
     })
   }
 
-  const updateAliasForMember = async (user, member, alias) => {
+  const updateSelfAlias = async (user, alias) => {
     await post('/command/exercise', {
       body: JSON.stringify({
         templateId: userTemplate,
         contractId: user.contractId,
-        choice: 'UserUpdateMemberAlias',
+        choice: 'UserUpdateSelfAlias',
         argument: {
-          member,
           alias
         }
+      })
+    })
+  }
+
+  const upsertToAddressBook = async (user, party, name) => {
+    await post('/command/exercise', {
+      body: JSON.stringify({
+        templateId: addressBookTemplate,
+        key: user.user,
+        choice: 'AddressBookAdd',
+        argument: {
+          party,
+          name
+        }
+      })
+    })
+  }
+
+  const removeFromAddressBook = async (user, party) => {
+    await post('/command/exercise', {
+      body: JSON.stringify({
+        templateId: addressBookTemplate,
+        key: user.user,
+        choice: 'AddressBookRemove',
+        argument: {
+          party
+        }
+      })
+    })
+  }
+
+  const requestUserList = async (user) => {
+    await post('/command/exercise', {
+      body: JSON.stringify({
+        templateId: userTemplate,
+        contractId: user.contractId,
+        choice: 'UserRequestAliases',
+        argument: {}
       })
     })
   }
@@ -247,7 +288,10 @@ async function ChatManager(party, token, updateUser, updateState) {
     requestPublicChat,
     addMembersToChat,
     removeMembersFromChat,
-    updateAliasForMember,
+    updateSelfAlias,
+    upsertToAddressBook,
+    removeFromAddressBook,
+    requestUserList,
     renameChat,
     archiveChat
   }

@@ -1,6 +1,6 @@
 sdk-version: 0.13.46
 name: dablchat
-version: 1.3.0
+version: 1.4.0
 source: daml/Chat.daml
 parties:
 - Alice

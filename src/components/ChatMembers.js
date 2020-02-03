@@ -8,7 +8,7 @@ const ChatMembers = props => {
       <li className="chat-member" key={member}>
         <div>
           <span className={`presence online`}/>
-          <span>{aliases[member] || member}</span>
+          <span>{!!aliases[member] ? `${aliases[member]} (${member})` : member}</span>
         </div>
       </li>
     );

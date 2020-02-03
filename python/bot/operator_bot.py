@@ -1,9 +1,10 @@
 import os
 import logging
 import uuid
+import time
 
 import dazl
-from dazl import create, exercise
+from dazl import create, exercise, exercise_by_key
 
 dazl.setup_default_logger(logging.INFO)
 
@@ -45,7 +46,7 @@ def main():
 
 
         ledger_parties = client.find_active('DABL.Ledger.V2.LedgerParty')
-        logging.info(f'found {len(invitations)} Chat.UserInvitation contracts')
+        logging.info(f'found {len(ledger_parties)} DABL.Ledger.V2.LedgerParty contracts')
 
         commands = []
 
@@ -56,6 +57,29 @@ def main():
                 and user not in invitations_parties:
                     commands.append(exercise(event.cid, 'OperatorInviteUser', {'user': user}))
                     logging.info(f'will invite {user}...')
+
+        return client.submit(commands)
+
+
+    @client.ledger_created('Chat.AliasesRequest')
+    def divulge_aliases(event):  # pylint: disable=unused-variable
+        logging.info('On Chat.AliasesRequest!')
+        aliases = client.find_active('Chat.SelfAlias')
+        logging.info(f'found {len(aliases)} Chat.SelfAlias contracts')
+        mappings = [f"{cdata['user']} -> {cdata['alias']}" for _ , cdata in aliases.items()]
+        mappings_str = '\n'.join(mappings)
+        commands = []
+        commands.append(exercise(event.cid, 'Archive', {}))
+        commands.append(exercise_by_key('Chat.Chat',
+            {'_1': client.party, '_2': event.cdata['user']},
+            'ChatPostMessage',
+            {
+                'poster': client.party,
+                'message': f"Here is the list of known users:\n```scala\n{mappings_str}\n```" \
+                    if len(mappings) > 0 else "I couldn't find any known users!",
+                'postedAt': f"{int(time.time())}"
+            }
+        ))
 
         return client.submit(commands)
 

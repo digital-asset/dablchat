@@ -1,7 +1,8 @@
 daml 1.2
 module Chat where
 
-import DA.List
+import DA.List as L
+import DA.Next.Map as M
 
 template Operator
   with
@@ -30,6 +31,13 @@ template UserInvitation
     controller user can
       UserInvitationAccept : ContractId User
         do
+          let contacts = M.fromList [(operator, "Operator")]
+          create AddressBook with ..
+          create Chat
+            with creator = operator, members = [operator, user],
+                    name = "Operator Bot",
+                    topic = Some "Hey there! I am the Operator Bot",
+                    chatId = partyToText user, isPublic = False, ..
           create User with ..
 
       UserInvitationReject : ()
@@ -62,27 +70,57 @@ template User
         do
           create CreateChatRequest with isPublic = False, ..
 
-      nonconsuming UserUpdateMemberAlias : Optional (ContractId MemberAlias)
+      nonconsuming UserUpdateSelfAlias : Optional (ContractId SelfAlias)
         with
-          member : Party
           alias : Text
         do
-          optAliasCid <- lookupByKey @MemberAlias (user, member)
+          optAliasCid <- lookupByKey @SelfAlias (operator, user)
           case optAliasCid of
             Some cid | alias /= "" -> do
-                newCid <- exercise cid MemberAliasRename with newAlias = alias
+                newCid <- exercise cid SelfAliasRename with newAlias = alias
                 return $ Some newCid
             Some cid | alias == "" -> do
               archive cid
               return None
             None | alias /= "" -> do
-              cid <- create MemberAlias with ..
+              cid <- create SelfAlias with ..
               return $ Some cid
             _ -> return None
+
+      nonconsuming UserRequestAliases : ContractId AliasesRequest
+        do create AliasesRequest with ..
 
     controller operator can
       UserOffboard : ()
         do return ()
+
+
+template AddressBook
+  with
+    operator : Party
+    user : Party
+    contacts : Map Party Text
+  where
+    signatory user
+
+    key user : Party
+    maintainer key
+
+    controller user can
+      AddressBookAdd : ContractId AddressBook
+        with
+          party : Party
+          name : Text
+        do
+          assert $ party /= operator
+          create this with contacts = insert party name contacts
+
+      AddressBookRemove : ContractId AddressBook
+        with
+          party : Party
+        do
+          assert $ party /= operator
+          create this with contacts = M.delete party contacts
 
 
 template Message
@@ -125,23 +163,31 @@ template CreateChatRequest
         do return ()
 
 
-template MemberAlias
+template SelfAlias
   with
+    operator : Party
     user : Party
-    member : Party
     alias : Text
   where
-    signatory user
+    signatory operator, user
 
-    key (user, member) : (Party, Party)
-    maintainer key._1
+    key (operator, user) : (Party, Party)
+    maintainer key._2
 
     controller user can
-      MemberAliasRename : ContractId MemberAlias
+      SelfAliasRename : ContractId SelfAlias
         with
           newAlias : Text
         do
           create this with alias = newAlias
+
+
+template AliasesRequest
+  with
+    operator : Party
+    user : Party
+  where
+    signatory operator
 
 
 template Chat
@@ -158,7 +204,7 @@ template Chat
     signatory chatSignatory
     observer members
 
-    key (chatSignatory, name) : (Party, Text)
+    key (chatSignatory, if isPublic then name else chatId) : (Party, Text)
     maintainer key._1
 
     nonconsuming choice ChatPostMessage : ContractId Message
@@ -189,7 +235,7 @@ template Chat
       do
         assert (member == creator || (dedup membersToRemove) == [member])
         assert (or $ map (\nm -> elem nm members) membersToRemove)
-        create this with members = filter (\m -> not (elem m membersToRemove)) members
+        create this with members = L.filter (\m -> not (elem m membersToRemove)) members
 
     controller creator can
       ChatRename : ContractId Chat

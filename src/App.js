@@ -60,8 +60,16 @@ const commands = [
     description: "rename a chat. (You must be the creator of the chat)"
   },
   {
-    command: "/alias [@user] [new name]",
-    description: "Map a name to a user, visible only to you. Empty user defaults to you, empty name removes the alias)"
+    command: "/contact @user [new name]",
+    description: "Map a name to a user, visible only to you. Empty name removes the mapping"
+  },
+  {
+    command: "/self [name]",
+    description: "Publish your suggested name to all users, empty name removes the info"
+  },
+  {
+    command: "/users ",
+    description: "The operator will publish a list of known user names that you can then add to your contacts"
   },
   {
     command: "/archive [#chat-id]",
@@ -366,12 +374,22 @@ class App extends Component {
           .then(() => this.chatManager.fetchUpdate())
         }
         break;
-      case 'alias':
-        const aliasMember = words.filter(w => w.startsWith("@")).map(w => w.slice(1));
-        if (aliasMember.length > 1) return alert("at most one @user is required");
-        const alias = words.filter(w => !w.startsWith("@"));
-        this.chatManager.updateAliasForMember(chatUser,
-          aliasMember.length === 0 ? chatUser.user : aliasMember[0], alias.join(' '))
+      case 'contact':
+        const contactParty = words.filter(w => w.startsWith("@")).map(w => w.slice(1));
+        if (contactParty.length === 0) return alert("a @user is required");
+        if (contactParty.length > 1) return alert("exactly one @user is required");
+        const contactName = words.filter(w => !w.startsWith("@"));
+        if (contactName.length === 0){
+          this.chatManager.removeFromAddressBook(chatUser, contactParty[0])
+        } else {
+          this.chatManager.upsertToAddressBook(chatUser, contactParty[0], contactName.join(' '))
+        }
+        break;
+      case 'self':
+        this.chatManager.updateSelfAlias(chatUser, words.join(' '))
+        break;
+      case 'users':
+        this.chatManager.requestUserList(chatUser)
         break;
       case 'rename':
         const chatIdToRename = words.find(w => w.startsWith("#")) || (currentChat && `#${currentChat.chatId}`) || '';
@@ -453,7 +471,7 @@ class App extends Component {
         <aside className="sidebar left-sidebar">
           {partyName ? (
             <div className="user-profile" onClick={() => this.setState(this.updateCurrentChat(null))}>
-              <span className="username">{`@${partyName}`}</span>
+              <span className="username">{partyName}</span>
             </div>
           ) : null}
           {!!chats ? (<div className="channels-box">
@@ -503,7 +521,15 @@ class App extends Component {
                     </tr>
                     <tr>
                         <td>Map a name to a user</td>
-                        <td><code>/alias [@user] [your alias]</code></td>
+                        <td><code>/contact [@user] [user's name]</code></td>
+                    </tr>
+                    <tr>
+                        <td>Publish your preferred name</td>
+                        <td><code>/self [name]</code></td>
+                    </tr>
+                    <tr>
+                        <td>Request a list of known users from the Operator</td>
+                        <td><code>/users</code></td>
                     </tr>
                     <tr>
                         <th>If you create a chat, you can:</th>
