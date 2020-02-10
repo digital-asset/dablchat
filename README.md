@@ -51,7 +51,7 @@ Click on your ledger and navigate to the _Automation_ tab. Click on `change` nex
 
 ### 6. Invite your users
 
-In the _Live Data_ tab of your ledger confirm that a `Chat:Operator` contract has been created under your username. Click on _Add Party_ and start adding the users you want. Each user you added should now have a `DABL.Ledger.V2:LedgerParty` contract as well as a `Chat:UserInvitation` contract.
+In the _Live Data_ tab of your ledger confirm that a `Chat:Operator` contract has been created under your username. Click on _Add Party_ and start adding the users you want. Each user you added should now have a `DABL.Ledger.V3:LedgerParty` contract as well as a `Chat:UserInvitation` contract.
 
 ### 7. Log in and start chatting!
 

@@ -45,8 +45,8 @@ def main():
         logging.info(f'invitations_parties: {invitations_parties}')
 
 
-        ledger_parties = client.find_active('DABL.Ledger.V2.LedgerParty')
-        logging.info(f'found {len(ledger_parties)} DABL.Ledger.V2.LedgerParty contracts')
+        ledger_parties = client.find_active('DABL.Ledger.V3.LedgerParty')
+        logging.info(f'found {len(ledger_parties)} DABL.Ledger.V3.LedgerParty contracts')
 
         commands = []
 
@@ -130,9 +130,9 @@ def main():
             return client.submit_exercise(event.cid, 'CreateChatRequestReject')
 
 
-    @client.ledger_created('DABL.Ledger.V2.LedgerParty')
+    @client.ledger_created('DABL.Ledger.V3.LedgerParty')
     def invite_user_to_chat(event):  # pylint: disable=unused-variable
-        logging.info(f'On DABL.Ledger.V2.LedgerParty created!')
+        logging.info(f'On DABL.Ledger.V3.LedgerParty created!')
         cdata = event.cdata
         if cdata['party'] == client.party:
             return

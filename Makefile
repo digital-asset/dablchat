@@ -1,7 +1,8 @@
 PYTHON := pipenv run python
+dar_version := $(shell grep "^version" daml.yaml | sed 's/version: //g')
 bot_version := $(shell pipenv run python python/setup.py --version)
 ui_version := $(shell node -p "require(\"./package.json\").version")
-dar := target/*.dar
+dar := target/dablchat-model-$(dar_version).dar
 bot := target/dablchat-bot-$(bot_version).tar.gz
 ui := target/dablchat-ui-$(ui_version).zip
 
@@ -13,7 +14,7 @@ package: $(bot) $(dar) $(ui)
 $(dar):
 	daml build
 	mkdir -p $(@D)
-	mv .daml/dist/*.dar $(@D)
+	mv .daml/dist/*.dar $@
 
 
 $(bot):
