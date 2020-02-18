@@ -26,7 +26,7 @@ async function ChatManager(party, token, updateUser, updateState) {
     return fetch('//' + siteSubDomain() + url, options);
   }
 
-  const ledgerPartyTemplate = 'DABL.Ledger.V2:LedgerParty'
+  const ledgerPartyTemplate = 'DABL.Ledger.V3:LedgerParty'
   const userTemplate = 'Chat:User'
   const userInvitationTemplate = 'Chat:UserInvitation'
   const chatTemplate = 'Chat:Chat'
