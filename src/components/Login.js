@@ -2,7 +2,7 @@ import React from 'react';
 
 
 const Login = props => {
-  const { partyName, handleSubmit, handleUserInput, handleTokenInput, token } = props;
+  const { partyId, handleSubmit, handleUserInput, handleTokenInput, token } = props;
 
   const showLoginWithDABL = window.location.hostname !== 'localhost';
 
@@ -32,7 +32,7 @@ const Login = props => {
           <label className="username-label" htmlFor="username">
             Party
           </label>
-          <input className="username-input" type="text" id="username" name="partyName" value={partyName} onChange={handleUserInput} placeholder="Party ID"/>
+          <input className="username-input" type="text" id="username" name="partyId" value={partyId} onChange={handleUserInput} placeholder="Party ID"/>
           <label className="username-label" htmlFor="username">
             Token
           </label>

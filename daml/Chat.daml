@@ -17,14 +17,32 @@ template Operator
       nonconsuming OperatorInviteUser : ContractId UserInvitation
         with
           user : Party
+          userName : Text
         do
           create UserInvitation with ..
+
+
+template UserSession
+  with
+    operator : Party
+    user : Party
+    userName : Text
+  where
+    signatory user
+    key user : Party
+    maintainer key
+
+    controller operator can
+      UserSessionArchive : ()
+        do return ()
+
 
 
 template UserInvitation
   with
     operator : Party
     user : Party
+    userName : Text
   where
     signatory operator
 
@@ -48,6 +66,7 @@ template User
   with
     operator : Party
     user : Party
+    userName : Text
   where
     signatory operator, user
 

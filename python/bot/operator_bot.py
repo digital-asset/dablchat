@@ -45,18 +45,20 @@ def main():
         logging.info(f'invitations_parties: {invitations_parties}')
 
 
-        ledger_parties = client.find_active('DABL.Ledger.V3.LedgerParty')
-        logging.info(f'found {len(ledger_parties)} DABL.Ledger.V3.LedgerParty contracts')
+        user_sessions = client.find_active('Chat.UserSession')
+        logging.info(f'found {len(user_sessions)} Chat.UserSession contracts')
 
         commands = []
 
-        for (_, cdata) in ledger_parties.items():
-            user = cdata['party']
+        for (cid, cdata) in user_sessions.items():
+            user = cdata['user']
+            user_name = cdata['user']
             if user != client.party \
                 and user not in users_parties \
                 and user not in invitations_parties:
-                    commands.append(exercise(event.cid, 'OperatorInviteUser', {'user': user}))
+                    commands.append(exercise(event.cid, 'OperatorInviteUser', {'user': user, 'userName': user_name}))
                     logging.info(f'will invite {user}...')
+            commands.append(exercise(cid, 'UserSessionArchive', {}))
 
         return client.submit(commands)
 
@@ -130,18 +132,23 @@ def main():
             return client.submit_exercise(event.cid, 'CreateChatRequestReject')
 
 
-    @client.ledger_created('DABL.Ledger.V3.LedgerParty')
+    @client.ledger_created('Chat.UserSession')
     def invite_user_to_chat(event):  # pylint: disable=unused-variable
-        logging.info(f'On DABL.Ledger.V3.LedgerParty created!')
+        logging.info(f'On Chat.UserSession created!')
         cdata = event.cdata
-        if cdata['party'] == client.party:
+        if cdata['user'] == client.party:
             return
 
-        logging.info(f"Inviting {cdata['partyName']} ({cdata['party']}) to DABL Chat")
+        logging.info(f"Inviting {cdata['userName']} ({cdata['user']}) to DABL Chat")
 
-        return dazl.exercise_by_key('Chat.Operator', client.party, 'OperatorInviteUser', {
-            'user': cdata['party']
-        })
+        commands = []
+        commands.append(exercise_by_key('Chat.Operator', client.party, 'OperatorInviteUser', {
+            'user': cdata['user'],
+            'userName': cdata['userName']
+        }))
+        commands.append(exercise(event.cid, 'UserSessionArchive', {}))
+
+        return client.submit(commands)
 
     network.run_forever()
 
