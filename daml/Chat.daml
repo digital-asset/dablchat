@@ -33,9 +33,18 @@ template UserSession
     maintainer key
 
     controller operator can
-      UserSessionArchive : ()
-        do return ()
-
+      UserSessionAck : Either (ContractId UserInvitation) (ContractId User)
+        do
+          let userKey = (operator, user)
+          optUserInvitation <- lookupByKey @UserInvitation userKey
+          optUser <- lookupByKey @User userKey
+          case (optUserInvitation, optUser) of
+            (None, None) -> do
+              (opCid, _) <- fetchByKey @Operator operator
+              userInvitationCid <- exercise opCid OperatorInviteUser with ..
+              return $ Left userInvitationCid
+            (Some userInvitationCid, _) -> return $ Left userInvitationCid
+            (_, Some userCid) -> return $ Right userCid
 
 
 template UserInvitation
@@ -45,6 +54,9 @@ template UserInvitation
     userName : Text
   where
     signatory operator
+
+    key (operator, user) : (Party, Party)
+    maintainer key._1
 
     controller user can
       UserInvitationAccept : ContractId User

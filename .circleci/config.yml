@@ -38,7 +38,7 @@ jobs:
             sudo apt-get update
             sudo apt-get install -y --no-install-recommends openjdk-11-jdk=11.0.6+10-1~deb10u1
       - install_sdk:
-          version: "0.13.50"
+          version: "0.13.53"
       - save_cache:
           paths:
             - ~/.daml

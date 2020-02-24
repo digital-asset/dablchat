@@ -34,33 +34,16 @@ def main():
     @client.ledger_created('Chat.Operator')
     def invite_users(event):  # pylint: disable=unused-variable
         logging.info(f'On Chat.Operator created!')
-        users = client.find_active('Chat.User', {'operator': client.party})
-        logging.info(f'found {len(users)} Chat.User contracts')
-        invitations = client.find_active('Chat.UserInvitation', {'operator': client.party})
-        logging.info(f'found {len(invitations)} Chat.UserInvitation contracts')
-
-        users_parties = map(lambda _, cdata: cdata['user'], users.items())
-        logging.info(f'users_parties: {users_parties}')
-        invitations_parties = map(lambda _, cdata: cdata['user'], invitations.items())
-        logging.info(f'invitations_parties: {invitations_parties}')
-
-
         user_sessions = client.find_active('Chat.UserSession')
         logging.info(f'found {len(user_sessions)} Chat.UserSession contracts')
 
-        commands = []
+        return [exercise(cid, 'UserSessionAck') for cid in user_sessions.keys()]
 
-        for (cid, cdata) in user_sessions.items():
-            user = cdata['user']
-            user_name = cdata['user']
-            if user != client.party \
-                and user not in users_parties \
-                and user not in invitations_parties:
-                    commands.append(exercise(event.cid, 'OperatorInviteUser', {'user': user, 'userName': user_name}))
-                    logging.info(f'will invite {user}...')
-            commands.append(exercise(cid, 'UserSessionArchive', {}))
 
-        return client.submit(commands)
+    @client.ledger_created('Chat.UserSession')
+    def invite_user_to_chat(event):  # pylint: disable=unused-variable
+        logging.info(f'On Chat.UserSession created!')
+        return client.submit_exercise(event.cid, 'UserSessionAck')
 
 
     @client.ledger_created('Chat.AliasesRequest')
@@ -130,25 +113,6 @@ def main():
             })
         else:
             return client.submit_exercise(event.cid, 'CreateChatRequestReject')
-
-
-    @client.ledger_created('Chat.UserSession')
-    def invite_user_to_chat(event):  # pylint: disable=unused-variable
-        logging.info(f'On Chat.UserSession created!')
-        cdata = event.cdata
-        if cdata['user'] == client.party:
-            return
-
-        logging.info(f"Inviting {cdata['userName']} ({cdata['user']}) to DABL Chat")
-
-        commands = []
-        commands.append(exercise_by_key('Chat.Operator', client.party, 'OperatorInviteUser', {
-            'user': cdata['user'],
-            'userName': cdata['userName']
-        }))
-        commands.append(exercise(event.cid, 'UserSessionArchive', {}))
-
-        return client.submit(commands)
 
     network.run_forever()
 
