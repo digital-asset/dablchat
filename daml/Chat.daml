@@ -17,16 +17,46 @@ template Operator
       nonconsuming OperatorInviteUser : ContractId UserInvitation
         with
           user : Party
+          userName : Text
         do
           create UserInvitation with ..
+
+
+template UserSession
+  with
+    operator : Party
+    user : Party
+    userName : Text
+  where
+    signatory user
+    key user : Party
+    maintainer key
+
+    controller operator can
+      UserSessionAck : Either (ContractId UserInvitation) (ContractId User)
+        do
+          let userKey = (operator, user)
+          optUserInvitation <- lookupByKey @UserInvitation userKey
+          optUser <- lookupByKey @User userKey
+          case (optUserInvitation, optUser) of
+            (None, None) -> do
+              (opCid, _) <- fetchByKey @Operator operator
+              userInvitationCid <- exercise opCid OperatorInviteUser with ..
+              return $ Left userInvitationCid
+            (Some userInvitationCid, _) -> return $ Left userInvitationCid
+            (_, Some userCid) -> return $ Right userCid
 
 
 template UserInvitation
   with
     operator : Party
     user : Party
+    userName : Text
   where
     signatory operator
+
+    key (operator, user) : (Party, Party)
+    maintainer key._1
 
     controller user can
       UserInvitationAccept : ContractId User
@@ -48,6 +78,7 @@ template User
   with
     operator : Party
     user : Party
+    userName : Text
   where
     signatory operator, user
 

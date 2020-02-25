@@ -34,31 +34,16 @@ def main():
     @client.ledger_created('Chat.Operator')
     def invite_users(event):  # pylint: disable=unused-variable
         logging.info(f'On Chat.Operator created!')
-        users = client.find_active('Chat.User', {'operator': client.party})
-        logging.info(f'found {len(users)} Chat.User contracts')
-        invitations = client.find_active('Chat.UserInvitation', {'operator': client.party})
-        logging.info(f'found {len(invitations)} Chat.UserInvitation contracts')
+        user_sessions = client.find_active('Chat.UserSession')
+        logging.info(f'found {len(user_sessions)} Chat.UserSession contracts')
 
-        users_parties = map(lambda _, cdata: cdata['user'], users.items())
-        logging.info(f'users_parties: {users_parties}')
-        invitations_parties = map(lambda _, cdata: cdata['user'], invitations.items())
-        logging.info(f'invitations_parties: {invitations_parties}')
+        return [exercise(cid, 'UserSessionAck') for cid in user_sessions.keys()]
 
 
-        ledger_parties = client.find_active('DABL.Ledger.V3.LedgerParty')
-        logging.info(f'found {len(ledger_parties)} DABL.Ledger.V3.LedgerParty contracts')
-
-        commands = []
-
-        for (_, cdata) in ledger_parties.items():
-            user = cdata['party']
-            if user != client.party \
-                and user not in users_parties \
-                and user not in invitations_parties:
-                    commands.append(exercise(event.cid, 'OperatorInviteUser', {'user': user}))
-                    logging.info(f'will invite {user}...')
-
-        return client.submit(commands)
+    @client.ledger_created('Chat.UserSession')
+    def invite_user_to_chat(event):  # pylint: disable=unused-variable
+        logging.info(f'On Chat.UserSession created!')
+        return client.submit_exercise(event.cid, 'UserSessionAck')
 
 
     @client.ledger_created('Chat.AliasesRequest')
@@ -128,20 +113,6 @@ def main():
             })
         else:
             return client.submit_exercise(event.cid, 'CreateChatRequestReject')
-
-
-    @client.ledger_created('DABL.Ledger.V3.LedgerParty')
-    def invite_user_to_chat(event):  # pylint: disable=unused-variable
-        logging.info(f'On DABL.Ledger.V3.LedgerParty created!')
-        cdata = event.cdata
-        if cdata['party'] == client.party:
-            return
-
-        logging.info(f"Inviting {cdata['partyName']} ({cdata['party']}) to DABL Chat")
-
-        return dazl.exercise_by_key('Chat.Operator', client.party, 'OperatorInviteUser', {
-            'user': cdata['party']
-        })
 
     network.run_forever()
 

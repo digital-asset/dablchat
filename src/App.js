@@ -169,7 +169,7 @@ class App extends Component {
     this.state = INITIAL_STATE;
     const url = new URL(window.location)
     const urlParams = new URLSearchParams(url.search)
-    const name = urlParams.get('party') || localStorage.getItem('party.name')
+    const partyId = urlParams.get('party') || localStorage.getItem('party.id')
     const token = urlParams.get('token') || localStorage.getItem('party.token')
 
     this.handleInput = this.handleInput.bind(this);
@@ -184,11 +184,11 @@ class App extends Component {
     this.startPolling = this.startPolling.bind(this);
     this.stopPolling = this.stopPolling.bind(this);
 
-    if (!!name && !!token) {
+    if (!!partyId && !!token) {
       this.state.token = token;
-      this.state.partyName = name;
+      this.state.partyId = partyId;
       this.state.showLogin = false;
-      this.createChatManager(name, token);
+      this.createChatManager(partyId, token);
     }
   }
 
@@ -201,9 +201,9 @@ class App extends Component {
   }
 
   handleSubmit(event) {
-    const { partyName, token } = event.target;
+    const { partyId, token } = event.target;
     event.preventDefault()
-    this.createChatManager(partyName.value, token.value)
+    this.createChatManager(partyId.value, token.value)
   }
 
   handleAcceptInvitation(event) {
@@ -218,8 +218,9 @@ class App extends Component {
 
   handleLogout(event) {
     event.preventDefault();
-    localStorage.removeItem("party.name");
+    localStorage.removeItem("party.id");
     localStorage.removeItem("party.token");
+    localStorage.removeItem("operator.id")
     this.stopPolling();
     this.setState({
       partyId: '',
@@ -237,20 +238,20 @@ class App extends Component {
     });
   }
 
-  async createChatManager(partyName, token) {
+  async createChatManager(partyId, token) {
     try {
-      this.chatManager = await ChatManager(partyName, token, this.updateUser, this.updateState)
-      localStorage.setItem("party.name", partyName);
+      this.chatManager = await ChatManager(partyId, token, this.updateUser, this.updateState)
+      localStorage.setItem("party.id", partyId);
       localStorage.setItem("party.token", token);
     } catch (e) {
       alert(e.message || 'Unable to connect to chat')
     }
   }
 
-  updateUser(userParty, user, onboarded) {
+  updateUser(user, onboarded) {
     this.setState({
-      partyId: userParty.party,
-      partyName: userParty.partyName,
+      partyId: user.user,
+      partyName: user.userName,
       chatUser: user,
       showLogin: false,
       showWelcome: !onboarded
@@ -453,6 +454,7 @@ class App extends Component {
   render() {
     const {
       token,
+      partyId,
       partyName,
       showLogin,
       showWelcome,
@@ -642,7 +644,7 @@ class App extends Component {
         </aside>
         {showLogin ? (
           <Login
-            partyName={partyName}
+            partyId={partyId}
             token={token}
             handleUserInput={this.handleInput}
             handleTokenInput={this.handleInput}

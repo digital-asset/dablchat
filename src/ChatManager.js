@@ -1,6 +1,36 @@
 
+function parseJwt(token) {
+  var base64Url = token.split('.')[1];
+  var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+  var jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+  }).join(''));
+
+  return JSON.parse(jsonPayload);
+};
+
+function parseUserName(token) {
+  const sub = parseJwt(token)['sub']
+  const startChar = sub.indexOf('|');
+  const endChar = sub.indexOf('@');
+  const userNameLength = endChar - startChar - 1;
+
+  return userNameLength > 0 ? sub.substr(startChar + 1, userNameLength) : sub;
+};
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 async function ChatManager(party, token, updateUser, updateState) {
+
+  const ADDRESS_BOOK_TEMPLATE = 'Chat:AddressBook'
+  const CHAT_TEMPLATE = 'Chat:Chat'
+  const MESSAGE_TEMPLATE = 'Chat:Message'
+  const SELF_ALIAS_TEMPLATE = 'Chat:SelfAlias'
+  const USER_TEMPLATE = 'Chat:User'
+  const USER_INVITATION_TEMPLATE = 'Chat:UserInvitation'
+  const USER_SESSION_TEMPLATE = 'Chat:UserSession'
 
   const headers = {
     "Authorization": `Bearer ${token.toString()}`,
@@ -26,19 +56,32 @@ async function ChatManager(party, token, updateUser, updateState) {
     return fetch('//' + siteSubDomain() + url, options);
   }
 
-  const ledgerPartyTemplate = 'DABL.Ledger.V3:LedgerParty'
-  const userTemplate = 'Chat:User'
-  const userInvitationTemplate = 'Chat:UserInvitation'
-  const chatTemplate = 'Chat:Chat'
-  const messageTemplate = 'Chat:Message'
-  const selfAliasTemplate = 'Chat:SelfAlias'
-  const addressBookTemplate = 'Chat:AddressBook'
+  const getChatOperator = async () => {
+    const url = window.location.host
+    const response = await fetch('//' + url + '/.well-known/dabl.json');
+    const dablJson = await response.json();
+    return dablJson['userAdminParty']
+  }
 
-  const userContractsResponse = await post('/contracts/search', {
-    body: JSON.stringify({ 'templateIds': [ ledgerPartyTemplate, userTemplate, userInvitationTemplate ]})
-  })
+  const createSession = async (operator, userName) => {
+    return post('/command/create', {
+      body: JSON.stringify({
+        templateId: USER_SESSION_TEMPLATE,
+        payload: {
+          operator,
+          user: party,
+          userName
+        }
+      })
+    })
+  }
 
-  switch (userContractsResponse.status) {
+  const operatorId = localStorage.getItem("operator.id") || await getChatOperator();
+  localStorage.setItem("operator.id", operatorId)
+  const userName = parseUserName(token)
+  const createSessionResponse = await createSession(operatorId, userName);
+
+  switch (createSessionResponse.status) {
     case 401:
       throw new Error("Authentication failed")
     case 404:
@@ -48,29 +91,33 @@ async function ChatManager(party, token, updateUser, updateState) {
     default:
   }
 
-  const userContracts = await userContractsResponse.json();
-  console.log(userContracts)
-
   try {
-    const ledgerParties = userContracts.result.filter(up => up.templateId.endsWith(ledgerPartyTemplate));
-    const users = userContracts.result.filter(u => u.templateId.endsWith(userTemplate));
-    const userInvites = userContracts.result.filter(ui => ui.templateId.endsWith(userInvitationTemplate));
+    // Make MAX_ATTEMPTS to fetch the user or their invitation
+    let user = null
+    let attempts = 0
+    const MAX_ATTEMPTS = 3
+    while (!user && attempts < MAX_ATTEMPTS) {
+      const userContractsResponse = await post('/contracts/search', {
+        body: JSON.stringify({ 'templateIds': [ USER_TEMPLATE, USER_INVITATION_TEMPLATE ]})
+      })
+      const userContracts = await userContractsResponse.json();
 
-    const ledgerParty = ledgerParties.find(lp => lp.payload.party === party)
-    if (!ledgerParty) {
-      throw new Error(`Could not match party ${party} to provided token!`)
+      user = userContracts.result.find(u => u.templateId.endsWith(USER_TEMPLATE))
+        || userContracts.result.find(ui => ui.templateId.endsWith(USER_INVITATION_TEMPLATE));
+
+      if (!user) {
+        attempts += 1
+        await sleep(2000);
+      }
     }
-
-    const user = users.find(u => u.payload.user === ledgerParty.payload.party)
-      || userInvites.find(ui => ui.payload.user === ledgerParty.payload.party);
 
     if (!user) {
-      throw new Error(`User ${ledgerParty.payload.partyName} has not been onboarded to this app!`)
+      throw new Error(`Cannot onboard user ${party} to this app!`)
     }
 
-    const onboarded = user.templateId.endsWith(userTemplate);
+    const onboarded = user.templateId.endsWith(USER_TEMPLATE);
 
-    updateUser(ledgerParty.payload, Object.assign({}, {...user.payload, contractId: user.contractId}), onboarded);
+    updateUser(Object.assign({}, {...user.payload, contractId: user.contractId}), onboarded);
   } catch(e) {
     console.error(e)
   }
@@ -78,16 +125,22 @@ async function ChatManager(party, token, updateUser, updateState) {
   const fetchUpdate = async () => {
     try {
       const allContractsResponse = await post('/contracts/search', {
-        body: JSON.stringify({ 'templateIds': [chatTemplate, messageTemplate, userTemplate, addressBookTemplate, selfAliasTemplate] })
+        body: JSON.stringify({ 'templateIds': [
+          CHAT_TEMPLATE,
+          MESSAGE_TEMPLATE,
+          USER_TEMPLATE,
+          ADDRESS_BOOK_TEMPLATE,
+          SELF_ALIAS_TEMPLATE
+        ] })
       })
 
       const allContracts = await allContractsResponse.json();
 
-      const chats = allContracts.result.filter(c => c.templateId.endsWith(chatTemplate));
-      const messages = allContracts.result.filter(m => m.templateId.endsWith(messageTemplate));
-      const user = allContracts.result.find(u => u.templateId.endsWith(userTemplate));
-      const selfAlias = allContracts.result.find(ma => ma.templateId.endsWith(selfAliasTemplate));
-      const addressBook = allContracts.result.find(ma => ma.templateId.endsWith(addressBookTemplate));
+      const chats = allContracts.result.filter(c => c.templateId.endsWith(CHAT_TEMPLATE));
+      const messages = allContracts.result.filter(m => m.templateId.endsWith(MESSAGE_TEMPLATE));
+      const user = allContracts.result.find(u => u.templateId.endsWith(USER_TEMPLATE));
+      const selfAlias = allContracts.result.find(ma => ma.templateId.endsWith(SELF_ALIAS_TEMPLATE));
+      const addressBook = allContracts.result.find(ma => ma.templateId.endsWith(ADDRESS_BOOK_TEMPLATE));
 
       const model = chats
         .sort((c1, c2) => c1.payload.name > c2.payload.name ? 1 : c1.payload.name < c2.payload.name ? -1 : 0)
@@ -122,7 +175,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   const acceptInvitation = async (userInvitation) => {
     await post('/command/exercise', {
       body: JSON.stringify({
-        templateId: userInvitationTemplate,
+        templateId: USER_INVITATION_TEMPLATE,
         contractId: userInvitation.contractId,
         choice: 'UserInvitationAccept',
         argument: {}
@@ -135,7 +188,7 @@ async function ChatManager(party, token, updateUser, updateState) {
     const seconds = Math.round(d.getTime() / 1000);
     await post('/command/exercise', {
       body: JSON.stringify({
-        templateId: chatTemplate,
+        templateId: CHAT_TEMPLATE,
         contractId: chat.contractId,
         choice: 'ChatPostMessage',
         argument: {
@@ -150,7 +203,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   const requestPrivateChat = async (user, name, members, topic) => {
     await post('/command/exercise', {
       body: JSON.stringify({
-        templateId: userTemplate,
+        templateId: USER_TEMPLATE,
         contractId: user.contractId,
         choice: 'UserRequestPrivateChat',
         argument: {
@@ -165,7 +218,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   const requestPublicChat = async (user, name, topic) => {
     await post('/command/exercise', {
       body: JSON.stringify({
-        templateId: userTemplate,
+        templateId: USER_TEMPLATE,
         contractId: user.contractId,
         choice: 'UserRequestPublicChat',
         argument: {
@@ -179,7 +232,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   const addMembersToChat = async (user, chat, newMembers) => {
     await post('/command/exercise', {
       body: JSON.stringify({
-        templateId: chatTemplate,
+        templateId: CHAT_TEMPLATE,
         contractId: chat.contractId,
         choice: 'ChatAddMembers',
         argument: {
@@ -193,7 +246,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   const removeMembersFromChat = async (user, chat, membersToRemove) => {
     await post('/command/exercise', {
       body: JSON.stringify({
-        templateId: chatTemplate,
+        templateId: CHAT_TEMPLATE,
         contractId: chat.contractId,
         choice: 'ChatRemoveMembers',
         argument: {
@@ -207,7 +260,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   const updateSelfAlias = async (user, alias) => {
     await post('/command/exercise', {
       body: JSON.stringify({
-        templateId: userTemplate,
+        templateId: USER_TEMPLATE,
         contractId: user.contractId,
         choice: 'UserUpdateSelfAlias',
         argument: {
@@ -220,7 +273,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   const upsertToAddressBook = async (user, party, name) => {
     await post('/command/exercise', {
       body: JSON.stringify({
-        templateId: addressBookTemplate,
+        templateId: ADDRESS_BOOK_TEMPLATE,
         key: user.user,
         choice: 'AddressBookAdd',
         argument: {
@@ -234,7 +287,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   const removeFromAddressBook = async (user, party) => {
     await post('/command/exercise', {
       body: JSON.stringify({
-        templateId: addressBookTemplate,
+        templateId: ADDRESS_BOOK_TEMPLATE,
         key: user.user,
         choice: 'AddressBookRemove',
         argument: {
@@ -247,7 +300,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   const requestUserList = async (user) => {
     await post('/command/exercise', {
       body: JSON.stringify({
-        templateId: userTemplate,
+        templateId: USER_TEMPLATE,
         contractId: user.contractId,
         choice: 'UserRequestAliases',
         argument: {}
@@ -258,7 +311,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   const renameChat = async (chat, newName, newTopic) => {
     await post('/command/exercise', {
       body: JSON.stringify({
-        templateId: chatTemplate,
+        templateId: CHAT_TEMPLATE,
         contractId: chat.contractId,
         choice: 'ChatRename',
         argument: {
@@ -272,7 +325,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   const archiveChat = async (chat) => {
     await post('/command/exercise', {
       body: JSON.stringify({
-        templateId: chatTemplate,
+        templateId: CHAT_TEMPLATE,
         contractId: chat.contractId,
         choice: 'ChatArchive',
         argument: {}
@@ -295,7 +348,6 @@ async function ChatManager(party, token, updateUser, updateState) {
     renameChat,
     archiveChat
   }
-
 }
 
 export default ChatManager;
