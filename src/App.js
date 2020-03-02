@@ -74,7 +74,11 @@ const commands = [
   {
     command: "/archive [#chat-id]",
     description: "archive a chat. (You must be the creator of the chat)"
-  }
+  },
+  {
+    command: "/slack [#chat-id] [slackChannelId]",
+    description: "Forward messages of a public chat to a slack channel. (Requires a running Slack Send Message integration and you must be the creator of the chat)"
+  },
 ]
 
 const GIPHY_TOKEN = 'kDqbzOZtPvy38TLdqonPnpTPrsLfW8uy'
@@ -395,7 +399,7 @@ class App extends Component {
       case 'rename':
         const chatIdToRename = words.find(w => w.startsWith("#")) || (currentChat && `#${currentChat.chatId}`) || '';
         const chatToRename = chats.find(c => c.chatId === chatIdToRename.slice(1))
-        if (!chatToRename) return alert(`unknown chat id ${chatId}`)
+        if (!chatToRename) return alert(`unknown chat id ${chatIdToRename}`)
         const newNameTopic = words.filter(w => !w.startsWith("#"));
         const newName = newNameTopic[0] || (await makeChatName());
         const newTopic = newNameTopic.length >= 2 ? newNameTopic.slice(1).join(' ') : ''
@@ -413,6 +417,13 @@ class App extends Component {
           this.chatManager.archiveChat(chatToArchive)
           .then(() => this.chatManager.fetchUpdate())
         }
+        break;
+      case 'slack':
+        const chatIdToForward = words.find(w => w.startsWith("#")) || (currentChat && `#${currentChat.chatId}`) || '';
+        const chatToForward = chats.find(c => c.chatId === chatIdToForward.slice(1))
+        if (!chatToForward) return alert(`unknown chat id ${chatToForward}`)
+        const slackChannelId = words.filter(w => !w.startsWith("#")).join('');
+        this.chatManager.forwardToSlack(chatToForward, slackChannelId)
         break;
       case 'giphy':
           fetch(`//api.giphy.com/v1/gifs/random?api_key=${GIPHY_TOKEN}&tag=${encodeURIComponent(content)}`)
@@ -554,7 +565,14 @@ class App extends Component {
                         <td><code>/archive [#chat-id]</code></td>
                     </tr>
                     <tr>
+                        <td>Forward public chat messages to a Slack channel *</td>
+                        <td><code>/slack [#chat-id] [slackChannelId]</code></td>
+                    </tr>
+                    <tr>
                         <td colSpan="2"><i>Anyone can add members to a public chat and you can remove yourself from any chat</i></td>
+                    </tr>
+                    <tr>
+                        <td colSpan="2"><i>* Requires running Slack Send Message integration</i></td>
                     </tr>
                     <tr>
                         <th>Other:</th>
