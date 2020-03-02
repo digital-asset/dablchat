@@ -317,13 +317,19 @@ class App extends Component {
   }
 
   handleSwitchToChat(chatId) {
-    const { chats } = this.state;
+    const { chats, currentChat } = this.state;
     var newChat = chats.find(chat => chat.chatId === chatId)
 
     if (newChat) {
       newChat.hasNewMessage = false;
     }
+
+    if (!currentChat || newChat.chatId !== currentChat.chatId) {
+      setTimeout(() => this.scrollToLatestMessages(), 100)
+    }
+
     this.setState({...this.updateCurrentChat(newChat), chats});
+    this.messageInput.setCaretPosition(this.messageInput.getCaretPosition());
   }
 
   async handleSubmitMessage(event) {
@@ -605,6 +611,7 @@ class App extends Component {
           <footer className="chat-footer">
             <form className="message-form" autoComplete="off" onSubmit={this.handleSubmitMessage}>
               <ReactTextareaAutocomplete
+                ref={(input) => this.messageInput = input}
                 className="message-input"
                 value={newMessage}
                 name="newMessage"
