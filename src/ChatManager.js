@@ -333,6 +333,19 @@ async function ChatManager(party, token, updateUser, updateState) {
     })
   }
 
+  const forwardToSlack = async (chat, slackChannelId) => {
+    await post('/command/exercise', {
+      body: JSON.stringify({
+        templateId: CHAT_TEMPLATE,
+        contractId: chat.contractId,
+        choice: 'ChatForwardToSlack',
+        argument: {
+          slackChannelId
+        }
+      })
+    })
+  }
+
   return {
     fetchUpdate,
     acceptInvitation,
@@ -346,7 +359,8 @@ async function ChatManager(party, token, updateUser, updateState) {
     removeFromAddressBook,
     requestUserList,
     renameChat,
-    archiveChat
+    archiveChat,
+    forwardToSlack
   }
 }
 

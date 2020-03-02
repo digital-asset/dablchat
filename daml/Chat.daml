@@ -221,6 +221,26 @@ template AliasesRequest
     signatory operator
 
 
+template ForwardToSlack
+  with
+    operator : Party
+    user : Party
+    chatId : Text
+    slackChannelId : Text
+  where
+    signatory operator, user
+
+    key (operator, user, chatId) : (Party, Party, Text)
+    maintainer key._2
+
+    controller user can
+      ForwardToSlackUpdateChannel : ContractId ForwardToSlack
+        with
+          newSlackChannelId : Text
+        do
+          create this with slackChannelId = newSlackChannelId
+
+
 template Chat
   with
     operator : Party
@@ -246,7 +266,7 @@ template Chat
       controller poster
       do
         assert (elem poster members)
-        create Message with sender = poster, recipients = members, ..
+        create Message with sender = poster, recipients = dedup $ chatSignatory :: members, ..
 
     choice ChatAddMembers : ContractId Chat
       with
@@ -279,3 +299,21 @@ template Chat
 
       ChatArchive : ()
         do return ()
+
+      nonconsuming ChatForwardToSlack : Optional (ContractId ForwardToSlack)
+        with
+          slackChannelId : Text
+        do
+          optForwardToSlack <- lookupByKey @ForwardToSlack (operator, creator, chatId)
+          case optForwardToSlack of
+            Some cid | slackChannelId /= "" -> do
+                newCid <- exercise cid ForwardToSlackUpdateChannel
+                  with newSlackChannelId = slackChannelId
+                return $ Some newCid
+            Some cid | slackChannelId == "" -> do
+              archive cid
+              return None
+            None | slackChannelId /= "" -> do
+              cid <- create ForwardToSlack with user = creator, ..
+              return $ Some cid
+            _ -> return None

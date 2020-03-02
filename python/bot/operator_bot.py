@@ -46,6 +46,23 @@ def main():
         return client.submit_exercise(event.cid, 'UserSessionAck')
 
 
+    @client.ledger_created('Chat.Message')
+    def send_to_slack_channel(event):  # pylint: disable=unused-variable
+        cdata = event.cdata
+        logging.info(f"on message! {cdata}")
+        forwards = client.find_active('Chat.ForwardToSlack', {'chatId': cdata['chatId']})
+        logging.info(f'Found {len(forwards)} Chat.ForwardToSlack contracts')
+        posted_at = time.strftime("%a, %d %b %Y %H:%M:%S %Z", time.localtime(float(cdata['postedAt'])))
+        message_text = f"`From:` {cdata['sender']}\n`Posted At:` {posted_at}\n" \
+                       f"`DABL Chat Id:` {cdata['chatId']}\n`Message:` {cdata['message']}"
+        return [create('SlackIntegration.OutboundMessage.OutboundMessage', {
+            'integrationParty': client.party,
+            'slackChannel': f['slackChannelId'],
+            'messageText': message_text,
+            'attemptCount': 3
+        }) for (_, f) in forwards.items()]
+
+
     @client.ledger_created('Chat.AliasesRequest')
     def divulge_aliases(event):  # pylint: disable=unused-variable
         logging.info('On Chat.AliasesRequest!')
