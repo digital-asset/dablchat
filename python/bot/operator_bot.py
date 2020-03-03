@@ -8,6 +8,24 @@ from dazl import create, exercise, exercise_by_key
 
 dazl.setup_default_logger(logging.INFO)
 
+
+class CHAT:
+    AliasesRequest = 'Chat.V1.AliasesRequest'
+    Chat = 'Chat.V1.Chat'
+    CreateChatRequest = 'Chat.V1.CreateChatRequest'
+    ForwardToSlack = 'Chat.V1.ForwardToSlack'
+    Message = 'Chat.V1.Message'
+    Operator = 'Chat.V1.Operator'
+    SelfAlias = 'Chat.V1.SelfAlias'
+    User = 'Chat.V1.User'
+    UserSession = 'Chat.V1.UserSession'
+
+
+class SLACK_INTEGRATION:
+    class OUTBOUND_MESSAGE:
+        OutboundMessage = 'SlackIntegration.OutboundMessage.OutboundMessage'
+
+
 def main():
     url = os.getenv('DAML_LEDGER_URL')
     party = os.getenv('DAML_LEDGER_PARTY')
@@ -21,41 +39,41 @@ def main():
     @client.ledger_ready()
     def create_operator(event):  # pylint: disable=unused-variable
         logging.info(f'On Ledger Ready')
-        res = client.find_active('Chat.Operator')
-        logging.info(f'found {len(res)} Chat.Operator contracts')
+        res = client.find_active(CHAT.Operator)
+        logging.info(f'found {len(res)} {CHAT.Operator} contracts')
 
         if not res:
             logging.info(f'Creating Operator contract for {party}...')
-            return client.submit_create('Chat.Operator', { 'operator': client.party })
+            return client.submit_create(CHAT.Operator, { 'operator': client.party })
         else:
             logging.info(f'Operator {party} is ready')
 
 
-    @client.ledger_created('Chat.Operator')
+    @client.ledger_created(CHAT.Operator)
     def invite_users(event):  # pylint: disable=unused-variable
-        logging.info(f'On Chat.Operator created!')
-        user_sessions = client.find_active('Chat.UserSession')
-        logging.info(f'found {len(user_sessions)} Chat.UserSession contracts')
+        logging.info(f'On {CHAT.Operator} created!')
+        user_sessions = client.find_active(CHAT.UserSession)
+        logging.info(f'found {len(user_sessions)} {CHAT.UserSession} contracts')
 
         return [exercise(cid, 'UserSessionAck') for cid in user_sessions.keys()]
 
 
-    @client.ledger_created('Chat.UserSession')
+    @client.ledger_created(CHAT.UserSession)
     def invite_user_to_chat(event):  # pylint: disable=unused-variable
-        logging.info(f'On Chat.UserSession created!')
+        logging.info(f'On {CHAT.UserSession} created!')
         return client.submit_exercise(event.cid, 'UserSessionAck')
 
 
-    @client.ledger_created('Chat.Message')
+    @client.ledger_created(CHAT.Message)
     def send_to_slack_channel(event):  # pylint: disable=unused-variable
         cdata = event.cdata
         logging.info(f"on message! {cdata}")
-        forwards = client.find_active('Chat.ForwardToSlack', {'chatId': cdata['chatId']})
-        logging.info(f'Found {len(forwards)} Chat.ForwardToSlack contracts')
+        forwards = client.find_active(CHAT.ForwardToSlack, {'chatId': cdata['chatId']})
+        logging.info(f'Found {len(forwards)} {CHAT.ForwardToSlack} contracts')
         posted_at = time.strftime("%a, %d %b %Y %H:%M:%S %Z", time.localtime(float(cdata['postedAt'])))
         message_text = f"`From:` {cdata['sender']}\n`Posted At:` {posted_at}\n" \
                        f"`DABL Chat Id:` {cdata['chatId']}\n`Message:` {cdata['message']}"
-        return [create('SlackIntegration.OutboundMessage.OutboundMessage', {
+        return [create(SLACK_INTEGRATION.OUTBOUND_MESSAGE.OutboundMessage, {
             'integrationParty': client.party,
             'slackChannel': f['slackChannelId'],
             'messageText': message_text,
@@ -63,16 +81,16 @@ def main():
         }) for (_, f) in forwards.items()]
 
 
-    @client.ledger_created('Chat.AliasesRequest')
+    @client.ledger_created(CHAT.AliasesRequest)
     def divulge_aliases(event):  # pylint: disable=unused-variable
-        logging.info('On Chat.AliasesRequest!')
-        aliases = client.find_active('Chat.SelfAlias')
-        logging.info(f'found {len(aliases)} Chat.SelfAlias contracts')
+        logging.info(f'On {CHAT.AliasesRequest}')
+        aliases = client.find_active(CHAT.SelfAlias)
+        logging.info(f'found {len(aliases)} {CHAT.SelfAlias} contracts')
         mappings = [f"{cdata['user']} -> {cdata['alias']}" for _ , cdata in aliases.items()]
         mappings_str = '\n'.join(mappings)
         commands = []
         commands.append(exercise(event.cid, 'Archive', {}))
-        commands.append(exercise_by_key('Chat.Chat',
+        commands.append(exercise_by_key(CHAT.Chat,
             {'_1': client.party, '_2': event.cdata['user']},
             'ChatPostMessage',
             {
@@ -86,14 +104,14 @@ def main():
         return client.submit(commands)
 
 
-    @client.ledger_created('Chat.User')
+    @client.ledger_created(CHAT.User)
     def add_to_public_chats(event):  # pylint: disable=unused-variable
-        logging.info('On Chat.User created!')
+        logging.info(f'On {CHAT.User} created!')
         if event.cdata['operator'] != client.party:
             return
 
-        chats = client.find_active('Chat.Chat', {'isPublic': True})
-        logging.info(f'found {len(chats)} public Chat.Chat contracts')
+        chats = client.find_active(CHAT.Chat, {'isPublic': True})
+        logging.info(f'found {len(chats)} public {CHAT.Chat} contracts')
         new_user = event.cdata['user']
 
         commands = []
@@ -108,14 +126,14 @@ def main():
         return client.submit(commands)
 
 
-    @client.ledger_created('Chat.CreateChatRequest')
+    @client.ledger_created(CHAT.CreateChatRequest)
     def respond_to_chat_request(event):  # pylint: disable=unused-variable
-        logging.info(f'On Chat.CreateChatRequest created!')
+        logging.info(f'On {CHAT.CreateChatRequest} created!')
         cdata = event.cdata
         if cdata['operator'] != client.party:
             return
 
-        user_contracts = client.find_active('Chat.User')
+        user_contracts = client.find_active(CHAT.User)
         party_members = []
         is_public = cdata['isPublic']
 

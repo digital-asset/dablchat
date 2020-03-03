@@ -24,13 +24,13 @@ function sleep(ms) {
 
 async function ChatManager(party, token, updateUser, updateState) {
 
-  const ADDRESS_BOOK_TEMPLATE = 'Chat:AddressBook'
-  const CHAT_TEMPLATE = 'Chat:Chat'
-  const MESSAGE_TEMPLATE = 'Chat:Message'
-  const SELF_ALIAS_TEMPLATE = 'Chat:SelfAlias'
-  const USER_TEMPLATE = 'Chat:User'
-  const USER_INVITATION_TEMPLATE = 'Chat:UserInvitation'
-  const USER_SESSION_TEMPLATE = 'Chat:UserSession'
+  const ADDRESS_BOOK_TEMPLATE = 'Chat.V1:AddressBook'
+  const CHAT_TEMPLATE = 'Chat.V1:Chat'
+  const MESSAGE_TEMPLATE = 'Chat.V1:Message'
+  const SELF_ALIAS_TEMPLATE = 'Chat.V1:SelfAlias'
+  const USER_TEMPLATE = 'Chat.V1:User'
+  const USER_INVITATION_TEMPLATE = 'Chat.V1:UserInvitation'
+  const USER_SESSION_TEMPLATE = 'Chat.V1:UserSession'
 
   const headers = {
     "Authorization": `Bearer ${token.toString()}`,

@@ -1,8 +1,9 @@
 daml 1.2
-module Chat where
+module Chat.V1 where
 
 import DA.List as L
 import DA.Next.Map as M
+
 
 template Operator
   with
@@ -45,6 +46,9 @@ template UserSession
               return $ Left userInvitationCid
             (Some userInvitationCid, _) -> return $ Left userInvitationCid
             (_, Some userCid) -> return $ Right userCid
+
+      UserSessionReject : ()
+        do return ()
 
 
 template UserInvitation
@@ -212,6 +216,10 @@ template SelfAlias
         do
           create this with alias = newAlias
 
+    controller operator can
+      SelfAliasArchive : ()
+        do return ()
+
 
 template AliasesRequest
   with
@@ -239,6 +247,10 @@ template ForwardToSlack
           newSlackChannelId : Text
         do
           create this with slackChannelId = newSlackChannelId
+
+    controller operator can
+      ForwardToSlackArchive : ()
+        do return ()
 
 
 template Chat
@@ -287,6 +299,10 @@ template Chat
         assert (member == creator || (dedup membersToRemove) == [member])
         assert (or $ map (\nm -> elem nm members) membersToRemove)
         create this with members = L.filter (\m -> not (elem m membersToRemove)) members
+
+    controller chatSignatory can
+      ChatSignatoryArchive : ()
+        do return ()
 
     controller creator can
       ChatRename : ContractId Chat
