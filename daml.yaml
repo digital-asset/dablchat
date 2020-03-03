@@ -1,12 +1,12 @@
 sdk-version: 0.13.53
 name: dablchat
-version: 1.6.1
-source: daml/Chat.daml
+version: 1.6.2
+source: daml/Chat/V1.daml
 parties:
 - Alice
 - Bob
 exposed-modules:
-- Chat
+- Chat.V1
 dependencies:
 - daml-prim
 - daml-stdlib
