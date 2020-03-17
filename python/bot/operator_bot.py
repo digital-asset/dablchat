@@ -47,6 +47,9 @@ def main():
             return client.submit_create(CHAT.Operator, { 'operator': client.party })
         else:
             logging.info(f'Operator {party} is ready')
+            user_sessions = client.find_active(CHAT.UserSession)
+            logging.info(f'found {len(user_sessions)} {CHAT.UserSession} contracts')
+            return [exercise(cid, 'UserSessionAck') for cid in user_sessions.keys()]
 
 
     @client.ledger_created(CHAT.Operator)
