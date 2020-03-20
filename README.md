@@ -17,21 +17,22 @@ Log in to [project:DABL](https://projectdabl.com/) and create a new ledger under
 
 > ℹ️ Steps 2 to 4 are only necessary if you want to build the source code. If all you care about is deploying the app then download [dabl-chat.zip](https://github.com/digital-asset/dablchat/releases/latest/download/dabl-chat.zip) and proceed to step 5.
 
-### 2. Clone this repo
+### 2. Prerequisites
+
+- Git (to clone the repository)
+- The [DAML SDK](https://docs.daml.com/getting-started/installation.html) (to build the model)
+- Pipenv (to select Python version)
+- Python 3.6 or later (to build operator bot)
+- yarn (to build UI)
+- A [project:DABL](https://projectdabl.com/) account
+> ℹ️ If you are only interested in deploying DABL Chat, then all you need is a [project:DABL](https://projectdabl.com/) account!
+
+
+### 3. Clone this repo
 
 ```bash
 git clone https://github.com/digital-asset/dablchat.git
 ```
-
-### 3. Install prerequisites
-
-- The [DAML SDK](https://docs.daml.com/getting-started/installation.html)
-- Python 3.6 or later
-- Pipenv
-- Git
-- yarn
-- A [project:DABL](https://projectdabl.com/) account
-> ℹ️ If you are only interested in deploying DABL Chat, then all you need is a [project:DABL](https://projectdabl.com/) account!
 
 ### 4. Build your DAML model and automation
 
