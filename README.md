@@ -38,7 +38,7 @@ git clone https://github.com/digital-asset/dablchat.git
 ```bash
 make clean && make package
 ```
-This will create a versioned `dablchat-x.x.x.dar` file containing the compiled DAML model, a `dablchat-bot-x.x.x.tar.gz` tarball containing the python automation, and a `dablchat-ui-x.x.x.zip` archive containing the UI static assets. These files will be zipped into a `dabl-chat.zip` under the `target/` directory
+This will create a versioned `dablchat-x.x.x.dar` file containing the compiled DAML model, a `dablchat-bot-x.x.x.tar.gz` tarball containing the python automation, and a `dablchat-ui-x.x.x.zip` archive containing the UI static assets. These files will be zipped into a `dabl-chat.zip` under the `target/` directory.
 
 ### 5. Upload and deploy to DABL
 
