@@ -29,6 +29,7 @@ class SLACK_INTEGRATION:
 def main():
     url = os.getenv('DAML_LEDGER_URL')
     party = os.getenv('DAML_LEDGER_PARTY')
+    public_party = os.getenv('DABL_PUBLIC_PARTY')
 
     network = dazl.Network()
     network.set_config(url=url)
@@ -44,7 +45,7 @@ def main():
 
         if not res:
             logging.info(f'Creating Operator contract for {party}...')
-            return client.submit_create(CHAT.Operator, { 'operator': client.party })
+            return client.submit_create(CHAT.Operator, { 'operator': client.party, 'publicParty': public_party })
         else:
             logging.info(f'Operator {party} is ready')
 

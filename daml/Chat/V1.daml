@@ -8,6 +8,7 @@ import DA.Next.Map as M
 template Operator
   with
     operator : Party
+    publicParty : Party
   where
     signatory operator
 
@@ -54,6 +55,7 @@ template UserSession
 template UserInvitation
   with
     operator : Party
+    publicParty : Party
     user : Party
     userName : Text
   where
@@ -82,6 +84,7 @@ template User
   with
     operator : Party
     user : Party
+    publicParty : Party
     userName : Text
   where
     signatory operator, user
@@ -174,6 +177,7 @@ template CreateChatRequest
   with
     operator : Party
     user : Party
+    publicParty : Party
     name : Text
     topic : Optional Text
     isPublic : Bool
@@ -201,10 +205,13 @@ template CreateChatRequest
 template SelfAlias
   with
     operator : Party
+    publicParty : Party
     user : Party
     alias : Text
   where
     signatory operator, user
+
+    observer publicParty
 
     key (operator, user) : (Party, Party)
     maintainer key._2
@@ -258,14 +265,16 @@ template Chat
     operator : Party
     creator : Party
     members : [Party]
+    publicParty : Party
     name : Text
     topic : Optional Text
     chatId : Text
     isPublic : Bool
   where
     let chatSignatory = if isPublic then operator else creator
+        observers = if isPublic then publicParty :: members else members
     signatory chatSignatory
-    observer members
+    observer observers
 
     key (chatSignatory, if isPublic then name else chatId) : (Party, Text)
     maintainer key._1

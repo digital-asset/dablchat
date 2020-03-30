@@ -37,7 +37,7 @@ async function ChatManager(party, token, updateUser, updateState) {
     'Content-Type': 'application/json'
   }
 
-  const siteSubDomain = () => {
+  const siteSubDomain = (path = '/data/') => {
     if (window.location.hostname === 'localhost') {
         return window.location.hostname + (window.location.port ? ':' + window.location.port : '');
     }
@@ -47,7 +47,7 @@ async function ChatManager(party, token, updateUser, updateState) {
     let apiUrl = host.slice(1)
     apiUrl.unshift('api')
 
-    return apiUrl.join('.') + (window.location.port ? ':' + window.location.port : '') + '/data/' + ledgerId;
+    return apiUrl.join('.') + (window.location.port ? ':' + window.location.port : '') + path + ledgerId;
   }
 
   const post = (url, options = {}) => {
@@ -56,11 +56,18 @@ async function ChatManager(party, token, updateUser, updateState) {
     return fetch('//' + siteSubDomain() + url, options);
   }
 
-  const getChatOperator = async () => {
+  const fetchPublicToken = async () => {
+    const response = await fetch('//' + siteSubDomain('/api/ledger/') + '/public/token', { method: 'POST' });
+    const jsonResp = await response.json();
+    const accessToken = jsonResp['access_token'];
+    return accessToken;
+  }
+
+  const getWellKnownParties = async () => {
     const url = window.location.host
     const response = await fetch('//' + url + '/.well-known/dabl.json');
     const dablJson = await response.json();
-    return dablJson['userAdminParty']
+    return dablJson
   }
 
   const createSession = async (operator, userName) => {
@@ -76,8 +83,24 @@ async function ChatManager(party, token, updateUser, updateState) {
     })
   }
 
-  const operatorId = localStorage.getItem("operator.id") || await getChatOperator();
+  const parties = await getWellKnownParties();
+  const operatorId = localStorage.getItem("operator.id") || parties['userAdminParty'];
   localStorage.setItem("operator.id", operatorId)
+  localStorage.setItem("public.party", parties['publicParty']);
+
+  const publicToken = await fetchPublicToken();
+  localStorage.setItem("public.token", publicToken);
+
+  const publicHeaders = {
+    "Authorization": `Bearer ${publicToken.toString()}`,
+    'Content-Type': 'application/json'
+  }
+
+  const postPublic = (url, options = {}) => {
+    Object.assign(options, { method: 'POST', headers: publicHeaders });
+    return fetch('//' + siteSubDomain() + url, options);
+  }
+
   const userName = parseUserName(token)
   const createSessionResponse = await createSession(operatorId, userName);
 
@@ -132,7 +155,13 @@ async function ChatManager(party, token, updateUser, updateState) {
           ADDRESS_BOOK_TEMPLATE,
           SELF_ALIAS_TEMPLATE
         ] })
-      })
+      });
+
+      const allPublicContractsResponse = await postPublic('/contracts/search', {
+        body: JSON.stringify({ 'templateIds': [
+          SELF_ALIAS_TEMPLATE
+        ] })
+      });
 
       const allContracts = await allContractsResponse.json();
 
@@ -160,7 +189,16 @@ async function ChatManager(party, token, updateUser, updateState) {
           };
         });
 
-      let aliases = Object.assign({}, addressBook.payload.contacts.textMap);
+      const allPublicContracts = await allPublicContractsResponse.json();
+
+      const selfAliases = allPublicContracts.result.filter(ma => ma.templateId.endsWith(SELF_ALIAS_TEMPLATE));
+
+      const publicAliases = selfAliases.reduce((acc, curr) => {
+        acc[curr.payload.user] = curr.payload.alias;
+        return acc;
+      }, {});
+
+      let aliases = Object.assign({}, publicAliases, addressBook.payload.contacts.textMap);
       if (selfAlias) {
         aliases[selfAlias.payload.user] = selfAlias.payload.alias;
       }
