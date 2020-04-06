@@ -523,7 +523,7 @@ class App extends Component {
               <img className="chat-face-icon" src={chatFaceIcon} alt="app logo" />
               <h1>Welcome to DABL Chat</h1>
                 <span>An app written in  <a href="http://www.daml.com" target="_blank" rel="noopener noreferrer">DAML</a> and deployed using  <a href="http://www.projectdabl.com" target="_blank" rel="noopener noreferrer">project:dabl</a></span>
-                <p>View on source code on <a href="https://github.com/digital-asset/dablchat" target="_blank" rel="noopener noreferrer">GitHub</a></p>
+                <p>View source code on <a href="https://github.com/digital-asset/dablchat" target="_blank" rel="noopener noreferrer">GitHub</a></p>
                 <table>
                   <tbody>
                     <tr>
