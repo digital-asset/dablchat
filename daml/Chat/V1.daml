@@ -69,6 +69,7 @@ template UserInvitation
         do
           let contacts = M.fromList [(operator, "Operator")]
           create AddressBook with ..
+          create UserSettings with archiveMessagesAfter = 14, ..
           create Chat
             with creator = operator, members = [operator, user],
                     name = "Operator Bot",
@@ -128,9 +129,33 @@ template User
       nonconsuming UserRequestAliases : ContractId AliasesRequest
         do create AliasesRequest with ..
 
+      nonconsuming UserRequestArchiveMessages : ContractId ArchiveMessagesRequest
+        do create ArchiveMessagesRequest with ..
+
     controller operator can
       UserOffboard : ()
         do return ()
+
+
+template UserSettings
+  with
+    operator : Party
+    user : Party
+    archiveMessagesAfter : Int
+  where
+    signatory user
+
+    ensure archiveMessagesAfter >= 0
+
+    key user : Party
+    maintainer key
+
+    controller user can
+      UserSettingsUpdate : ContractId UserSettings
+        with
+          newArchiveMessagesAfter : Int
+        do
+          create this with archiveMessagesAfter = newArchiveMessagesAfter
 
 
 template AddressBook
@@ -258,6 +283,13 @@ template ForwardToSlack
     controller operator can
       ForwardToSlackArchive : ()
         do return ()
+
+
+template ArchiveMessagesRequest
+  with
+    user : Party
+  where
+    signatory user
 
 
 template Chat

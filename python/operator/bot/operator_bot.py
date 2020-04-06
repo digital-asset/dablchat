@@ -29,7 +29,7 @@ class SLACK_INTEGRATION:
 def main():
     url = os.getenv('DAML_LEDGER_URL')
     party = os.getenv('DAML_LEDGER_PARTY')
-    public_party = os.getenv('DABL_PUBLIC_PARTY')
+    public_party = os.getenv('DABL_PUBLIC_PARTY', 'public-vunha73s8qmavf36')
 
     network = dazl.Network()
     network.set_config(url=url)

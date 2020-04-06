@@ -1,6 +1,6 @@
 from setuptools import setup
 
-setup(name='dablchat-bot',
+setup(name='dablchat-operator-bot',
       version='1.7.0',
       description='DABL Chat Operator',
       author='Digital Asset',
