@@ -29,12 +29,13 @@ class SLACK_INTEGRATION:
 def main():
     url = os.getenv('DAML_LEDGER_URL')
     party = os.getenv('DAML_LEDGER_PARTY')
-    public_party = os.getenv('DABL_PUBLIC_PARTY', 'public-vunha73s8qmavf36')
+    public_party = os.getenv('DABL_PUBLIC_PARTY')
 
     network = dazl.Network()
     network.set_config(url=url)
 
     logging.info(f'starting a the operator_bot for party {party}')
+    logging.info(f'public party is {public_party}')
     client = network.aio_party(party)
 
     @client.ledger_ready()
