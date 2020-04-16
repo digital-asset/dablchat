@@ -8,6 +8,7 @@ import DA.Next.Map as M
 template Operator
   with
     operator : Party
+    publicParty : Party
   where
     signatory operator
 
@@ -54,6 +55,7 @@ template UserSession
 template UserInvitation
   with
     operator : Party
+    publicParty : Party
     user : Party
     userName : Text
   where
@@ -67,6 +69,7 @@ template UserInvitation
         do
           let contacts = M.fromList [(operator, "Operator")]
           create AddressBook with ..
+          create UserSettings with archiveMessagesAfter = 14, ..
           create Chat
             with creator = operator, members = [operator, user],
                     name = "Operator Bot",
@@ -82,6 +85,7 @@ template User
   with
     operator : Party
     user : Party
+    publicParty : Party
     userName : Text
   where
     signatory operator, user
@@ -125,9 +129,33 @@ template User
       nonconsuming UserRequestAliases : ContractId AliasesRequest
         do create AliasesRequest with ..
 
+      nonconsuming UserRequestArchiveMessages : ContractId ArchiveMessagesRequest
+        do create ArchiveMessagesRequest with ..
+
     controller operator can
       UserOffboard : ()
         do return ()
+
+
+template UserSettings
+  with
+    operator : Party
+    user : Party
+    archiveMessagesAfter : Int
+  where
+    signatory user
+
+    ensure archiveMessagesAfter >= 0
+
+    key user : Party
+    maintainer key
+
+    controller user can
+      UserSettingsUpdate : ContractId UserSettings
+        with
+          newArchiveMessagesAfter : Int
+        do
+          create this with archiveMessagesAfter = newArchiveMessagesAfter
 
 
 template AddressBook
@@ -174,6 +202,7 @@ template CreateChatRequest
   with
     operator : Party
     user : Party
+    publicParty : Party
     name : Text
     topic : Optional Text
     isPublic : Bool
@@ -201,10 +230,13 @@ template CreateChatRequest
 template SelfAlias
   with
     operator : Party
+    publicParty : Party
     user : Party
     alias : Text
   where
     signatory operator, user
+
+    observer publicParty
 
     key (operator, user) : (Party, Party)
     maintainer key._2
@@ -253,19 +285,28 @@ template ForwardToSlack
         do return ()
 
 
+template ArchiveMessagesRequest
+  with
+    user : Party
+  where
+    signatory user
+
+
 template Chat
   with
     operator : Party
     creator : Party
     members : [Party]
+    publicParty : Party
     name : Text
     topic : Optional Text
     chatId : Text
     isPublic : Bool
   where
     let chatSignatory = if isPublic then operator else creator
+        observers = if isPublic then publicParty :: members else members
     signatory chatSignatory
-    observer members
+    observer observers
 
     key (chatSignatory, if isPublic then name else chatId) : (Party, Text)
     maintainer key._1
