@@ -97,7 +97,7 @@ def main():
             'ChatPostMessage',
             {
                 'poster': client.party,
-                'message': f"Here is the list of known users:\n```scala\n{mappings_str}\n```" \
+                'message': f"Here is the list of known users:\n```\n{mappings_str}\n```" \
                     if len(mappings) > 0 else "I couldn't find any known users!",
                 'postedAt': f"{int(time.time())}"
             }
