@@ -71,7 +71,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   }
 
   const createSession = async (operator, userName) => {
-    return post('/command/create', {
+    return post('/v1/create', {
       body: JSON.stringify({
         templateId: USER_SESSION_TEMPLATE,
         payload: {
@@ -120,7 +120,7 @@ async function ChatManager(party, token, updateUser, updateState) {
     let attempts = 0
     const MAX_ATTEMPTS = 3
     while (!user && attempts < MAX_ATTEMPTS) {
-      const userContractsResponse = await post('/contracts/search', {
+      const userContractsResponse = await post('/v1/query', {
         body: JSON.stringify({ 'templateIds': [ USER_TEMPLATE, USER_INVITATION_TEMPLATE ]})
       })
       const userContracts = await userContractsResponse.json();
@@ -147,7 +147,7 @@ async function ChatManager(party, token, updateUser, updateState) {
 
   const fetchUpdate = async () => {
     try {
-      const allContractsResponse = await post('/contracts/search', {
+      const allContractsResponse = await post('/v1/query', {
         body: JSON.stringify({ 'templateIds': [
           CHAT_TEMPLATE,
           MESSAGE_TEMPLATE,
@@ -157,7 +157,7 @@ async function ChatManager(party, token, updateUser, updateState) {
         ] })
       });
 
-      const allPublicContractsResponse = await postPublic('/contracts/search', {
+      const allPublicContractsResponse = await postPublic('/v1/query', {
         body: JSON.stringify({ 'templateIds': [
           SELF_ALIAS_TEMPLATE
         ] })
@@ -211,7 +211,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   }
 
   const acceptInvitation = async (userInvitation) => {
-    await post('/command/exercise', {
+    await post('/v1/exercise', {
       body: JSON.stringify({
         templateId: USER_INVITATION_TEMPLATE,
         contractId: userInvitation.contractId,
@@ -224,7 +224,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   const sendMessage = async (user, chat, message) => {
     const d = new Date();
     const seconds = Math.round(d.getTime() / 1000);
-    await post('/command/exercise', {
+    await post('/v1/exercise', {
       body: JSON.stringify({
         templateId: CHAT_TEMPLATE,
         contractId: chat.contractId,
@@ -239,7 +239,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   }
 
   const requestPrivateChat = async (user, name, members, topic) => {
-    await post('/command/exercise', {
+    await post('/v1/exercise', {
       body: JSON.stringify({
         templateId: USER_TEMPLATE,
         contractId: user.contractId,
@@ -254,7 +254,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   }
 
   const requestPublicChat = async (user, name, topic) => {
-    await post('/command/exercise', {
+    await post('/v1/exercise', {
       body: JSON.stringify({
         templateId: USER_TEMPLATE,
         contractId: user.contractId,
@@ -268,7 +268,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   }
 
   const addMembersToChat = async (user, chat, newMembers) => {
-    await post('/command/exercise', {
+    await post('/v1/exercise', {
       body: JSON.stringify({
         templateId: CHAT_TEMPLATE,
         contractId: chat.contractId,
@@ -282,7 +282,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   }
 
   const removeMembersFromChat = async (user, chat, membersToRemove) => {
-    await post('/command/exercise', {
+    await post('/v1/exercise', {
       body: JSON.stringify({
         templateId: CHAT_TEMPLATE,
         contractId: chat.contractId,
@@ -296,7 +296,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   }
 
   const updateSelfAlias = async (user, alias) => {
-    await post('/command/exercise', {
+    await post('/v1/exercise', {
       body: JSON.stringify({
         templateId: USER_TEMPLATE,
         contractId: user.contractId,
@@ -309,7 +309,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   }
 
   const upsertToAddressBook = async (user, party, name) => {
-    await post('/command/exercise', {
+    await post('/v1/exercise', {
       body: JSON.stringify({
         templateId: ADDRESS_BOOK_TEMPLATE,
         key: user.user,
@@ -323,7 +323,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   }
 
   const removeFromAddressBook = async (user, party) => {
-    await post('/command/exercise', {
+    await post('/v1/exercise', {
       body: JSON.stringify({
         templateId: ADDRESS_BOOK_TEMPLATE,
         key: user.user,
@@ -336,7 +336,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   }
 
   const requestUserList = async (user) => {
-    await post('/command/exercise', {
+    await post('/v1/exercise', {
       body: JSON.stringify({
         templateId: USER_TEMPLATE,
         contractId: user.contractId,
@@ -347,7 +347,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   }
 
   const renameChat = async (chat, newName, newTopic) => {
-    await post('/command/exercise', {
+    await post('/v1/exercise', {
       body: JSON.stringify({
         templateId: CHAT_TEMPLATE,
         contractId: chat.contractId,
@@ -361,7 +361,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   }
 
   const archiveChat = async (chat) => {
-    await post('/command/exercise', {
+    await post('/v1/exercise', {
       body: JSON.stringify({
         templateId: CHAT_TEMPLATE,
         contractId: chat.contractId,
@@ -372,7 +372,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   }
 
   const forwardToSlack = async (chat, slackChannelId) => {
-    await post('/command/exercise', {
+    await post('/v1/exercise', {
       body: JSON.stringify({
         templateId: CHAT_TEMPLATE,
         contractId: chat.contractId,
