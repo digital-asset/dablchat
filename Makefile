@@ -22,7 +22,7 @@ $(target_dir):
 $(dar):
 	daml build
 	mkdir -p $(@D)
-	mv .daml/dist/*.dar $@
+	mv .daml/dist/dablchat-$(dar_version).dar $@
 
 $(dabl_meta): $(target_dir) dabl-meta.yaml
 	cp dabl-meta.yaml $@
