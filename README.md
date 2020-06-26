@@ -15,7 +15,7 @@ Welcome to DABL Chat! A DAML app that can be deployed to [project:DABL](https://
 
 Log in to [project:DABL](https://projectdabl.com/) and create a new ledger under an existing or a new project.
 
-> ℹ️ Steps 2 to 4 are only necessary if you want to build the source code. If all you care about is deploying the app then download [dabl-chat.zip](https://github.com/digital-asset/dablchat/releases/latest/download/dabl-chat.zip) and proceed to step 5.
+> ℹ️ The rest of the steps are only necessary if you want to build the source code. If all you care about is deploying the app then you can do so by logging in to your project:DABL workspace, locating the dabl chat tile in the bottom section of the page and clicking _Add to a Project_.
 
 ### 2. Prerequisites
 
@@ -39,24 +39,24 @@ git clone https://github.com/digital-asset/dablchat.git
 ```bash
 make clean && make package
 ```
-This will create a versioned `dablchat-x.x.x.dar` file containing the compiled DAML model, a `dablchat-bot-x.x.x.tar.gz` tarball containing the python automation, and a `dablchat-ui-x.x.x.zip` archive containing the UI static assets. These files will be zipped into a `dabl-chat.zip` under the `target/` directory.
+This will create a versioned `dablchat-model-x.x.x.dar` file containing the compiled DAML model, a `dablchat-operator-bot-x.x.x.tar.gz` and `dablchat-user-bot-x.x.x.tar.gz` tarballs containing the python automation, and a `dablchat-ui-x.x.x.zip` archive containing the UI static assets. These files will live under the `target/` directory along with a zip archive in the form of a dabl integtation (`dabl-chat.dit`), containing all of them.
 
 ### 5. Upload and deploy to DABL
 
-Unzip and upload the three files to your [project:DABL](https://projectdabl.com/) collections.
+Upload the the model, bots and ui files to your [project:DABL](https://projectdabl.com/) collections.
 Then drag and drop the each one of them to your newly created ledger.
 
 ### 6. Set up your automation and UI
 
-Click on your ledger and navigate to the _Automation_ tab. Click on `change` next to _Running as:_ and redeploy the bot as your user. Then go to _UI Assets_ and click on `Publish` next to `dablchat-ui-x.x.x.zip` to host your static assets.
+Click on your ledger and configure the `dablchat-operator-bot` to run as the `UserAdmin` party and the `dablchat-user-bot` as your user. The `dablchat-ui-x.x.x.zip` will automatically be published to the subdomain containing your ledger id. `<your-ledger-id>.projectdabl.com`.
 
-### 7. Invite your users
+### 7. Check that the Operator has initialized
 
-In the _Live Data_ tab of your ledger confirm that a `Chat:Operator` contract has been created under your username. Click on _Add Party_ and start adding the users you want. Each user you added should now have a `DABL.Ledger.V3:LedgerParty` contract as well as a `Chat:UserInvitation` contract.
+In the _Live Data_ tab of your ledger confirm that a `Chat:Operator` contract has been created under UserAdmin.
 
 ### 8. Log in and start chatting!
 
-You can find the subdomain url of your DABL Chat app in the _UI Assets_ tab. Each user you added can now navigate to that URL and use their name and JWT token (found in the _Ledger Settings_ tab) to log in and start chatting!
+You can find the subdomain url of your DABL Chat app in the _Deployments_ tab. Share it with your users and you are ready to go!
 
 ## Credits
 The UI portion of this app was inspired by [React Direct Messaging Example by Pusher](https://pusher.com/tutorials/react-direct-messaging).
