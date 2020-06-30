@@ -171,7 +171,7 @@ async function ChatManager(party, token, updateUser, updateState) {
 
       const publicMessages = allPublicContracts.result
         .filter(m => (m.templateId.endsWith(MESSAGE_TEMPLATE)) &&
-        (!userMessages.filter(u => u.contractId).includes(m.contractId)) );
+        (!userMessages.map(u => u.contractId).includes(m.contractId)));
 
       const chats = allContracts.result.filter(c => c.templateId.endsWith(CHAT_TEMPLATE));
       const user = allContracts.result.find(u => u.templateId.endsWith(USER_TEMPLATE));
@@ -182,7 +182,7 @@ async function ChatManager(party, token, updateUser, updateState) {
         .sort((c1, c2) => c1.payload.name > c2.payload.name ? 1 : c1.payload.name < c2.payload.name ? -1 : 0)
         .map(c => {
           const messages = c.payload.isPublic ? userMessages.concat(publicMessages) : userMessages
-          
+
           console.log(messages)
 
           const chatMessages = messages.filter(m => m.payload.chatId === c.payload.chatId)
