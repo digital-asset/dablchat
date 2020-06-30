@@ -168,25 +168,21 @@ async function ChatManager(party, token, updateUser, updateState) {
       const allPublicContracts = await allPublicContractsResponse.json();
 
       const userMessages = allContracts.result.filter(m => m.templateId.endsWith(MESSAGE_TEMPLATE));
+
       const publicMessages = allPublicContracts.result
         .filter(m => (m.templateId.endsWith(MESSAGE_TEMPLATE)) &&
         (!userMessages.filter(u => u.contractId).includes(m.contractId)) );
-
-      const messages = userMessages.concat(publicMessages)
 
       const chats = allContracts.result.filter(c => c.templateId.endsWith(CHAT_TEMPLATE));
       const user = allContracts.result.find(u => u.templateId.endsWith(USER_TEMPLATE));
       const selfAlias = allContracts.result.find(ma => ma.templateId.endsWith(SELF_ALIAS_TEMPLATE));
       const addressBook = allContracts.result.find(ma => ma.templateId.endsWith(ADDRESS_BOOK_TEMPLATE));
 
-      console.log("New New version!")
-      console.log('messages:', messages)
-      console.log('publicMessags:', publicMessages)
-      console.log('userMessages:', userMessages)
-
       const model = chats
         .sort((c1, c2) => c1.payload.name > c2.payload.name ? 1 : c1.payload.name < c2.payload.name ? -1 : 0)
         .map(c => {
+          const messages = c.payload.isPublic ? userMessages.concat(publicMessages) : userMessages
+          console.log(messages)
           const chatMessages = messages.filter(m => m.payload.chatId === c.payload.chatId)
             .sort((m1, m2) => m1.payload.postedAt > m2.payload.postedAt ? 1 : m1.payload.postedAt < m2.payload.postedAt ? -1 : 0)
             .map(m => Object.assign({}, {...m.payload, contractId: m.contractId}));
