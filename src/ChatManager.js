@@ -168,10 +168,10 @@ async function ChatManager(party, token, updateUser, updateState) {
       const allPublicContracts = await allPublicContractsResponse.json();
 
       const userMessages = allContracts.result.filter(m => m.templateId.endsWith(MESSAGE_TEMPLATE));
+      const userMessageContractIds = userMessages.map(u => u.contractId)
 
       const publicMessages = allPublicContracts.result
-        .filter(m => (m.templateId.endsWith(MESSAGE_TEMPLATE)) &&
-        (!userMessages.map(u => u.contractId).includes(m.contractId)));
+        .filter(m => m.templateId.endsWith(MESSAGE_TEMPLATE) && !userMessageContractIds.includes(m.contractId))
 
       const chats = allContracts.result.filter(c => c.templateId.endsWith(CHAT_TEMPLATE));
       const user = allContracts.result.find(u => u.templateId.endsWith(USER_TEMPLATE));
@@ -182,9 +182,6 @@ async function ChatManager(party, token, updateUser, updateState) {
         .sort((c1, c2) => c1.payload.name > c2.payload.name ? 1 : c1.payload.name < c2.payload.name ? -1 : 0)
         .map(c => {
           const messages = c.payload.isPublic ? userMessages.concat(publicMessages) : userMessages
-
-          console.log(messages)
-
           const chatMessages = messages.filter(m => m.payload.chatId === c.payload.chatId)
             .sort((m1, m2) => m1.payload.postedAt > m2.payload.postedAt ? 1 : m1.payload.postedAt < m2.payload.postedAt ? -1 : 0)
             .map(m => Object.assign({}, {...m.payload, contractId: m.contractId}));
