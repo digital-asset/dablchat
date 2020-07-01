@@ -1,3 +1,0 @@
-15:24:47.619 [sandbox-akka.actor.default-dispatcher-4] INFO  akka.event.slf4j.Slf4jLogger - Slf4jLogger started 
-15:24:53.905 [pool-1-thread-3] INFO  c.d.p.apiserver.LedgerApiServer - Listening on localhost:6865 over plain text. 
-15:24:53.921 [pool-1-thread-3] INFO  com.daml.platform.sandboxnext.Runner - Initialized sandbox version 1.2.0 with ledger-id = d9efee82-6a39-4d73-a850-6b355011678e, port = 6865, dar file = List(.daml/dist/dablchat-1.8.0.dar), time mode = wall-clock time, ledger = in-memory, auth-service = AuthServiceWildcard$, contract ids seeding = strong 
