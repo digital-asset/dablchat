@@ -159,14 +159,21 @@ async function ChatManager(party, token, updateUser, updateState) {
 
       const allPublicContractsResponse = await postPublic('/v1/query', {
         body: JSON.stringify({ 'templateIds': [
-          SELF_ALIAS_TEMPLATE
+          SELF_ALIAS_TEMPLATE,
+          MESSAGE_TEMPLATE
         ] })
       });
 
       const allContracts = await allContractsResponse.json();
+      const allPublicContracts = await allPublicContractsResponse.json();
+
+      const userMessages = allContracts.result.filter(m => m.templateId.endsWith(MESSAGE_TEMPLATE));
+      const userMessageContractIds = userMessages.map(u => u.contractId)
+
+      const publicMessages = allPublicContracts.result
+        .filter(m => m.templateId.endsWith(MESSAGE_TEMPLATE) && !userMessageContractIds.includes(m.contractId))
 
       const chats = allContracts.result.filter(c => c.templateId.endsWith(CHAT_TEMPLATE));
-      const messages = allContracts.result.filter(m => m.templateId.endsWith(MESSAGE_TEMPLATE));
       const user = allContracts.result.find(u => u.templateId.endsWith(USER_TEMPLATE));
       const selfAlias = allContracts.result.find(ma => ma.templateId.endsWith(SELF_ALIAS_TEMPLATE));
       const addressBook = allContracts.result.find(ma => ma.templateId.endsWith(ADDRESS_BOOK_TEMPLATE));
@@ -174,6 +181,7 @@ async function ChatManager(party, token, updateUser, updateState) {
       const model = chats
         .sort((c1, c2) => c1.payload.name > c2.payload.name ? 1 : c1.payload.name < c2.payload.name ? -1 : 0)
         .map(c => {
+          const messages = c.payload.isPublic ? userMessages.concat(publicMessages) : userMessages
           const chatMessages = messages.filter(m => m.payload.chatId === c.payload.chatId)
             .sort((m1, m2) => m1.payload.postedAt > m2.payload.postedAt ? 1 : m1.payload.postedAt < m2.payload.postedAt ? -1 : 0)
             .map(m => Object.assign({}, {...m.payload, contractId: m.contractId}));
@@ -188,8 +196,6 @@ async function ChatManager(party, token, updateUser, updateState) {
             isPublic: c.payload.isPublic
           };
         });
-
-      const allPublicContracts = await allPublicContractsResponse.json();
 
       const selfAliases = allPublicContracts.result.filter(ma => ma.templateId.endsWith(SELF_ALIAS_TEMPLATE));
 

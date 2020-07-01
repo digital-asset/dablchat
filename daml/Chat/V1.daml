@@ -319,7 +319,7 @@ template Chat
       controller poster
       do
         assert (elem poster members)
-        create Message with sender = poster, recipients = dedup $ chatSignatory :: members, ..
+        create Message with sender = poster, recipients = dedup $ chatSignatory :: observers, ..
 
     choice ChatAddMembers : ContractId Chat
       with
