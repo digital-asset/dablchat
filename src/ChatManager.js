@@ -56,14 +56,14 @@ async function ChatManager(party, token, updateUser, updateState) {
     return fetch('//' + siteSubDomain() + url, options);
   }
 
-  const fetchPublicToken = async () => {
+  export const fetchPublicToken = async () => {
     const response = await fetch('//' + siteSubDomain('/api/ledger/') + '/public/token', { method: 'POST' });
     const jsonResp = await response.json();
     const accessToken = jsonResp['access_token'];
     return accessToken;
   }
 
-  const getWellKnownParties = async () => {
+  export const getWellKnownParties = async () => {
     const url = window.location.host
     const response = await fetch('//' + url + '/.well-known/dabl.json');
     const dablJson = await response.json();

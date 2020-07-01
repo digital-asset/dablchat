@@ -337,10 +337,18 @@ textarea.message-input {
   display: flex;
   justify-content:center;
   align-items: center;
+  flex-direction: row;
+}
+
+.public-login {
+  width: 250px;
+  background-color: white;
+  display: flex;
+  align-items:  center;
 }
 
 .login {
-  width: 500px;
+  width: 250px;
   background-color: white;
   display: flex;
   align-items:  center;

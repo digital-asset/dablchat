@@ -1,10 +1,15 @@
 import React from 'react';
+import { fetchPublicToken, getWellKnownParties} from './ChatManager'
 
 
 const Login = props => {
   const { partyId, handleSubmit, handleUserInput, handleTokenInput, token } = props;
 
   const showLoginWithDABL = window.location.hostname !== 'localhost';
+
+  const publicToken = await fetchPublicToken();
+  const parties = await getWellKnownParties();
+  const publicPartyId = parties['publicParty'];
 
   const getLoginUrl = () => {
     let host = window.location.host.split('.');
@@ -20,6 +25,27 @@ const Login = props => {
 
   return (
     <div className="login-container">
+      <div className='public-login'>
+        <form onSubmit={handleSubmit}>
+          <label className="username-label" htmlFor="username">
+            Party
+          </label>
+          <input className="username-input" type="text" id="username" name="partyId" value={publicPartyId}/>
+          <label className="username-label" htmlFor="username">
+            Token
+          </label>
+          <input
+            id="secret"
+            className="username-input"
+            type="password"
+            name="token"
+            value={publicToken}
+          />
+          <button type='submit'>
+            Continue as Public Party
+          </button>
+        </form>
+      </div>
       <div className="login">
         <form className="login-form" onSubmit={handleSubmit}>
           {showLoginWithDABL && (
