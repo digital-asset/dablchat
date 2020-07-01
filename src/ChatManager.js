@@ -1,4 +1,3 @@
-
 function parseJwt(token) {
   var base64Url = token.split('.')[1];
   var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -23,33 +22,10 @@ function sleep(ms) {
 }
 
 async function ChatManager(party, token, updateUser, updateState) {
-  let currentParty = party
-  let currentToken = token
-
-  const fetchPublicToken = async () => {
-    const response = await fetch('//' + siteSubDomain('/api/ledger/') + '/public/token', { method: 'POST' });
-    const jsonResp = await response.json();
-    const accessToken = jsonResp['access_token'];
-    return accessToken;
-  }
-
-  const getWellKnownParties = async () => {
-    const url = window.location.host
-    const response = await fetch('//' + url + '/.well-known/dabl.json');
-    const dablJson = await response.json();
-    return dablJson
-  }
-
-  if (!currentParty || !currentToken) {
-    const parties = await getWellKnownParties();
-    currentParty =  parties['publicParty'];
-    currentToken = await fetchPublicToken();
-  }
 
   const ADDRESS_BOOK_TEMPLATE = 'Chat.V1:AddressBook'
   const CHAT_TEMPLATE = 'Chat.V1:Chat'
   const MESSAGE_TEMPLATE = 'Chat.V1:Message'
-  const OPERATOR_TEMPLATE = 'Chat.V1.Operator'
   const SELF_ALIAS_TEMPLATE = 'Chat.V1:SelfAlias'
   const USER_TEMPLATE = 'Chat.V1:User'
   const USER_INVITATION_TEMPLATE = 'Chat.V1:UserInvitation'
@@ -79,16 +55,27 @@ async function ChatManager(party, token, updateUser, updateState) {
     return fetch('//' + siteSubDomain() + url, options);
   }
 
+  const fetchPublicToken = async () => {
+    const response = await fetch('//' + siteSubDomain('/api/ledger/') + '/public/token', { method: 'POST' });
+    const jsonResp = await response.json();
+    const accessToken = jsonResp['access_token'];
+    return accessToken;
+  }
 
+  const getWellKnownParties = async () => {
+    const url = window.location.host
+    const response = await fetch('//' + url + '/.well-known/dabl.json');
+    const dablJson = await response.json();
+    return dablJson
+  }
 
   const createSession = async (operator, userName) => {
-    console.log('creating a session for party', currentParty)
     return post('/v1/create', {
       body: JSON.stringify({
         templateId: USER_SESSION_TEMPLATE,
         payload: {
           operator,
-          user: currentParty,
+          user: party,
           userName
         }
       })
@@ -129,7 +116,6 @@ async function ChatManager(party, token, updateUser, updateState) {
   try {
     // Make MAX_ATTEMPTS to fetch the user or their invitation
     let user = null
-    let onboarded = false
     let attempts = 0
     const MAX_ATTEMPTS = 3
     while (!user && attempts < MAX_ATTEMPTS) {
@@ -148,14 +134,13 @@ async function ChatManager(party, token, updateUser, updateState) {
     }
 
     if (!user) {
-      throw new Error(`Cannot onboard user ${currentParty} to this app!`)
+      throw new Error(`Cannot onboard user ${party} to this app!`)
     }
+
     const onboarded = user.templateId.endsWith(USER_TEMPLATE);
 
     updateUser(Object.assign({}, {...user.payload, contractId: user.contractId}), onboarded);
-  }
-
-  catch(e) {
+  } catch(e) {
     console.error(e)
   }
 
@@ -328,28 +313,28 @@ async function ChatManager(party, token, updateUser, updateState) {
     })
   }
 
-  const upsertToAddressBook = async (user, currentParty, name) => {
+  const upsertToAddressBook = async (user, party, name) => {
     await post('/v1/exercise', {
       body: JSON.stringify({
         templateId: ADDRESS_BOOK_TEMPLATE,
         key: user.user,
         choice: 'AddressBookAdd',
         argument: {
-          currentParty,
+          party,
           name
         }
       })
     })
   }
 
-  const removeFromAddressBook = async (user, currentParty) => {
+  const removeFromAddressBook = async (user, party) => {
     await post('/v1/exercise', {
       body: JSON.stringify({
         templateId: ADDRESS_BOOK_TEMPLATE,
         key: user.user,
         choice: 'AddressBookRemove',
         argument: {
-          currentParty
+          party
         }
       })
     })

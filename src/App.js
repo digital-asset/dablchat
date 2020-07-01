@@ -167,6 +167,19 @@ const INITIAL_STATE = {
   messages:[],
   newMessage: ''
 }
+const fetchPublicToken = async () => {
+  const response = await fetch('//' + siteSubDomain('/api/ledger/') + '/public/token', { method: 'POST' });
+  const jsonResp = await response.json();
+  const accessToken = jsonResp['access_token'];
+  return accessToken;
+}
+
+const getWellKnownParties = async () => {
+  const url = window.location.host
+  const response = await fetch('//' + url + '/.well-known/dabl.json');
+  const dablJson = await response.json();
+  return dablJson
+}
 
 class App extends Component {
   constructor() {
@@ -189,14 +202,23 @@ class App extends Component {
     this.startPolling = this.startPolling.bind(this);
     this.stopPolling = this.stopPolling.bind(this);
 
-    if (!!partyId & !!token) {
-      console.log('party is specified, logging in')
-      this.state.loggedIn = true
-    }
-    
-    this.state.token = token;
-    this.state.partyId = partyId;
-    this.createChatManager(partyId, token);
+    return (async () => {
+      let currentParty = party
+      let currentToken = token
+
+        if (!currentParty & !currentToken) {
+          currentToken = await this.fetchPublicToken();
+          const parties = await this.getWellKnownParties();
+          currentParty =  parties['publicParty'];
+        }
+        this.state.partyId = currentParty
+        this.state.token = currentToken
+        console.log('party and token set to', currentParty, currentToken)
+
+        this.state.loggedIn = true
+        this.createChatManager(partyId, token);
+        return this
+      })
   }
 
   handleInput(event) {
@@ -247,8 +269,23 @@ class App extends Component {
     });
   }
 
+  async fetchPublicToken() {
+    const response = await fetch('//' + siteSubDomain('/api/ledger/') + '/public/token', { method: 'POST' });
+    const jsonResp = await response.json();
+    const accessToken = jsonResp['access_token'];
+    return accessToken;
+  }
+
+  async getWellKnownParties(){
+    const url = window.location.host
+    const response = await fetch('//' + url + '/.well-known/dabl.json');
+    const dablJson = await response.json();
+    return dablJson
+  }
+
   async createChatManager(partyId, token) {
     console.log('creating chat manager with', partyId, token)
+    
     try {
       this.chatManager = await ChatManager(partyId, token, this.updateUser, this.updateState)
       localStorage.setItem("party.id", partyId);
