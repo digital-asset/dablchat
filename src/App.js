@@ -167,18 +167,18 @@ const INITIAL_STATE = {
   messages:[],
   newMessage: ''
 }
-const fetchPublicToken = async () => {
-  const response = await fetch('//' + siteSubDomain('/api/ledger/') + '/public/token', { method: 'POST' });
-  const jsonResp = await response.json();
-  const accessToken = jsonResp['access_token'];
-  return accessToken;
-}
 
-const getWellKnownParties = async () => {
-  const url = window.location.host
-  const response = await fetch('//' + url + '/.well-known/dabl.json');
-  const dablJson = await response.json();
-  return dablJson
+const siteSubDomain = (path = '/data/') => {
+  if (window.location.hostname === 'localhost') {
+      return window.location.hostname + (window.location.port ? ':' + window.location.port : '');
+  }
+
+  let host = window.location.host.split('.')
+  const ledgerId = host[0];
+  let apiUrl = host.slice(1)
+  apiUrl.unshift('api')
+
+  return apiUrl.join('.') + (window.location.port ? ':' + window.location.port : '') + path + ledgerId;
 }
 
 class App extends Component {
@@ -203,7 +203,7 @@ class App extends Component {
     this.stopPolling = this.stopPolling.bind(this);
 
     return (async () => {
-      let currentParty = party
+      let currentParty = partyId
       let currentToken = token
 
         if (!currentParty & !currentToken) {
