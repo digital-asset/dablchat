@@ -197,9 +197,9 @@ async function ChatManager(party, token, updateUser, updateState) {
           };
         });
 
-      const publicSelfAliases = allPublicContracts.result.filter(ma => ma.templateId.endsWith(SELF_ALIAS_TEMPLATE));
+      const selfAliases = allPublicContracts.result.filter(ma => ma.templateId.endsWith(SELF_ALIAS_TEMPLATE));
 
-      const publicAliases = publicSelfAliases.reduce((acc, curr) => {
+      const publicAliases = selfAliases.reduce((acc, curr) => {
         acc[curr.payload.user] = curr.payload.alias;
         return acc;
       }, {});
