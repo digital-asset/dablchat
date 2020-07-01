@@ -153,10 +153,11 @@ async function makeChatName() {
 }
 
 const INITIAL_STATE = {
+  loggedIn: false,
   partyId: '',
   token: '',
   partyName: '',
-  showLogin: true,
+  showLogin: false,
   showWelcome: false,
   chatUser: null,
   currentChat: null,
@@ -188,12 +189,14 @@ class App extends Component {
     this.startPolling = this.startPolling.bind(this);
     this.stopPolling = this.stopPolling.bind(this);
 
-    if (!!partyId && !!token) {
-      this.state.token = token;
-      this.state.partyId = partyId;
-      this.state.showLogin = false;
-      this.createChatManager(partyId, token);
+    if (!!partyId & !!token) {
+      console.log('logging in')
+      this.state.loggedIn = true
     }
+
+    this.state.token = token;
+    this.state.partyId = partyId;
+    this.createChatManager(partyId, token);
   }
 
   handleInput(event) {
@@ -226,11 +229,13 @@ class App extends Component {
     localStorage.removeItem("party.token");
     localStorage.removeItem("operator.id")
     this.stopPolling();
+    console.log('logging out')
     this.setState({
+      loggedIn: false,
       partyId: '',
       token: '',
       partyName: '',
-      showLogin: true,
+      showLogin: false,
       showWelcome: false,
       chatUser: null,
       currentChat: null,
@@ -243,6 +248,7 @@ class App extends Component {
   }
 
   async createChatManager(partyId, token) {
+    console.log('creating chat manager with', partyId, token)
     try {
       this.chatManager = await ChatManager(partyId, token, this.updateUser, this.updateState)
       localStorage.setItem("party.id", partyId);
@@ -470,6 +476,7 @@ class App extends Component {
 
   render() {
     const {
+      loggedIn,
       token,
       partyId,
       partyName,
@@ -484,15 +491,13 @@ class App extends Component {
     } = this.state;
 
     const isPublic = currentChat && currentChat.isPublic;
-
+    console.log('partyId and token: ', partyId, token)
     return (
       <div className="App">
         <aside className="sidebar left-sidebar">
-          {partyName ? (
             <div className="user-profile" onClick={() => this.setState(this.updateCurrentChat(null))}>
-              <span className="username">{partyName}</span>
+              <span className="username">{partyName? partyName: 'PublicParty'}</span>
             </div>
-          ) : null}
           {!!chats ? (<div className="channels-box">
             <h4>Chat Topics:</h4>
             <ChatList
@@ -647,12 +652,20 @@ class App extends Component {
           </footer>
         </section>
         <aside className="sidebar right-sidebar">
+          {loggedIn?
           <div className="logout" onClick={this.handleLogout}>
             <span className="logout-button">
               <span>Log out</span>
               <img className="logout-icon" src={logoutIcon} alt="log out" />
             </span>
           </div>
+          :
+          <div className="logout" onClick={() => this.setState({showLogin: true})}>
+              <span className="logout-button">
+                <span>Log in</span>
+                <img className="logout-icon" src={logoutIcon} alt="log out" />
+              </span>
+          </div>}
           {currentChat ? (
             <div className="chat-members-box">
             <h4>creator:</h4>
@@ -674,6 +687,7 @@ class App extends Component {
             handleUserInput={this.handleInput}
             handleTokenInput={this.handleInput}
             handleSubmit={this.handleSubmit}
+            onRequestClose={()=> this.setState({showLogin:false})}
           />
         ) : showWelcome ? (
           <NewUser

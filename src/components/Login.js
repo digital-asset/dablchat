@@ -1,8 +1,8 @@
 import React from 'react';
-
+import closeIcon from '../icons/close.svg';
 
 const Login = props => {
-  const { partyId, handleSubmit, handleUserInput, handleTokenInput, token } = props;
+  const { partyId, handleSubmit, handleUserInput, handleTokenInput, token, onRequestClose } = props;
 
   const showLoginWithDABL = window.location.hostname !== 'localhost';
 
@@ -20,7 +20,13 @@ const Login = props => {
 
   return (
     <div className="login-container">
+      
       <div className="login">
+      <img className="close-icon"
+          src={closeIcon}
+          alt="command"
+          onClick={onRequestClose}
+        />
         <form className="login-form" onSubmit={handleSubmit}>
           {showLoginWithDABL && (
             <>

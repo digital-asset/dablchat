@@ -23,6 +23,28 @@ function sleep(ms) {
 }
 
 async function ChatManager(party, token, updateUser, updateState) {
+  let currentParty = party
+  let currentToken = token
+
+  const fetchPublicToken = async () => {
+    const response = await fetch('//' + siteSubDomain('/api/ledger/') + '/public/token', { method: 'POST' });
+    const jsonResp = await response.json();
+    const accessToken = jsonResp['access_token'];
+    return accessToken;
+  }
+
+  const getWellKnownParties = async () => {
+    const url = window.location.host
+    const response = await fetch('//' + url + '/.well-known/dabl.json');
+    const dablJson = await response.json();
+    return dablJson
+  }
+
+  if (!currentParty || !currentToken) {
+    const parties = await getWellKnownParties();
+    currentParty =  parties['publicParty'];
+    currentToken = await fetchPublicToken();
+  }
 
   const ADDRESS_BOOK_TEMPLATE = 'Chat.V1:AddressBook'
   const CHAT_TEMPLATE = 'Chat.V1:Chat'
@@ -56,19 +78,7 @@ async function ChatManager(party, token, updateUser, updateState) {
     return fetch('//' + siteSubDomain() + url, options);
   }
 
-  const fetchPublicToken = async () => {
-    const response = await fetch('//' + siteSubDomain('/api/ledger/') + '/public/token', { method: 'POST' });
-    const jsonResp = await response.json();
-    const accessToken = jsonResp['access_token'];
-    return accessToken;
-  }
 
-  const getWellKnownParties = async () => {
-    const url = window.location.host
-    const response = await fetch('//' + url + '/.well-known/dabl.json');
-    const dablJson = await response.json();
-    return dablJson
-  }
 
   const createSession = async (operator, userName) => {
     return post('/v1/create', {
@@ -76,7 +86,7 @@ async function ChatManager(party, token, updateUser, updateState) {
         templateId: USER_SESSION_TEMPLATE,
         payload: {
           operator,
-          user: party,
+          user: currentParty,
           userName
         }
       })
@@ -135,7 +145,7 @@ async function ChatManager(party, token, updateUser, updateState) {
     }
 
     if (!user) {
-      throw new Error(`Cannot onboard user ${party} to this app!`)
+      throw new Error(`Cannot onboard user ${currentParty} to this app!`)
     }
 
     const onboarded = user.templateId.endsWith(USER_TEMPLATE);
@@ -314,28 +324,28 @@ async function ChatManager(party, token, updateUser, updateState) {
     })
   }
 
-  const upsertToAddressBook = async (user, party, name) => {
+  const upsertToAddressBook = async (user, currentParty, name) => {
     await post('/v1/exercise', {
       body: JSON.stringify({
         templateId: ADDRESS_BOOK_TEMPLATE,
         key: user.user,
         choice: 'AddressBookAdd',
         argument: {
-          party,
+          currentParty,
           name
         }
       })
     })
   }
 
-  const removeFromAddressBook = async (user, party) => {
+  const removeFromAddressBook = async (user, currentParty) => {
     await post('/v1/exercise', {
       body: JSON.stringify({
         templateId: ADDRESS_BOOK_TEMPLATE,
         key: user.user,
         choice: 'AddressBookRemove',
         argument: {
-          party
+          currentParty
         }
       })
     })
