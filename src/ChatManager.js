@@ -25,6 +25,7 @@ function sleep(ms) {
 async function ChatManager(party, token, updateUser, updateState) {
   let currentParty = party
   let currentToken = token
+  let publicParty = false
 
   const fetchPublicToken = async () => {
     const response = await fetch('//' + siteSubDomain('/api/ledger/') + '/public/token', { method: 'POST' });
@@ -41,6 +42,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   }
 
   if (!currentParty || !currentToken) {
+    // publicParty = true
     const parties = await getWellKnownParties();
     currentParty =  parties['publicParty'];
     currentToken = await fetchPublicToken();
@@ -49,6 +51,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   const ADDRESS_BOOK_TEMPLATE = 'Chat.V1:AddressBook'
   const CHAT_TEMPLATE = 'Chat.V1:Chat'
   const MESSAGE_TEMPLATE = 'Chat.V1:Message'
+  const OPERATOR_TEMPLATE = 'Chat.V1.Operator'
   const SELF_ALIAS_TEMPLATE = 'Chat.V1:SelfAlias'
   const USER_TEMPLATE = 'Chat.V1:User'
   const USER_INVITATION_TEMPLATE = 'Chat.V1:UserInvitation'
@@ -81,6 +84,7 @@ async function ChatManager(party, token, updateUser, updateState) {
 
 
   const createSession = async (operator, userName) => {
+    console.log('creating a session for party', currentParty)
     return post('/v1/create', {
       body: JSON.stringify({
         templateId: USER_SESSION_TEMPLATE,
@@ -127,6 +131,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   try {
     // Make MAX_ATTEMPTS to fetch the user or their invitation
     let user = null
+    let onboarded = false
     let attempts = 0
     const MAX_ATTEMPTS = 3
     while (!user && attempts < MAX_ATTEMPTS) {
@@ -147,13 +152,12 @@ async function ChatManager(party, token, updateUser, updateState) {
     if (!user) {
       throw new Error(`Cannot onboard user ${currentParty} to this app!`)
     }
-
-    const onboarded = user.templateId.endsWith(USER_TEMPLATE);
-
-    updateUser(Object.assign({}, {...user.payload, contractId: user.contractId}), onboarded);
-  } catch(e) {
-    console.error(e)
+    onboarded = user.templateId.endsWith(USER_TEMPLATE);
   }
+    
+  catch(e) {
+    console.error(e)
+}
 
   const fetchUpdate = async () => {
     try {

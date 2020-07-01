@@ -192,6 +192,8 @@ class App extends Component {
     if (!!partyId & !!token) {
       console.log('logging in')
       this.state.loggedIn = true
+    } else {
+      handleAcceptInvitation(event)
     }
 
     this.state.token = token;
