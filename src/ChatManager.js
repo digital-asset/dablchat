@@ -25,7 +25,6 @@ function sleep(ms) {
 async function ChatManager(party, token, updateUser, updateState) {
   let currentParty = party
   let currentToken = token
-  let publicParty = false
 
   const fetchPublicToken = async () => {
     const response = await fetch('//' + siteSubDomain('/api/ledger/') + '/public/token', { method: 'POST' });
@@ -42,7 +41,6 @@ async function ChatManager(party, token, updateUser, updateState) {
   }
 
   if (!currentParty || !currentToken) {
-    // publicParty = true
     const parties = await getWellKnownParties();
     currentParty =  parties['publicParty'];
     currentToken = await fetchPublicToken();
@@ -152,12 +150,14 @@ async function ChatManager(party, token, updateUser, updateState) {
     if (!user) {
       throw new Error(`Cannot onboard user ${currentParty} to this app!`)
     }
-    onboarded = user.templateId.endsWith(USER_TEMPLATE);
+    const onboarded = user.templateId.endsWith(USER_TEMPLATE);
+
+    updateUser(Object.assign({}, {...user.payload, contractId: user.contractId}), onboarded);
   }
-    
+
   catch(e) {
     console.error(e)
-}
+  }
 
   const fetchUpdate = async () => {
     try {

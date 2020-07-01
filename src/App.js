@@ -190,12 +190,10 @@ class App extends Component {
     this.stopPolling = this.stopPolling.bind(this);
 
     if (!!partyId & !!token) {
-      console.log('logging in')
+      console.log('party is specified, logging in')
       this.state.loggedIn = true
-    } else {
-      handleAcceptInvitation(event)
     }
-
+    
     this.state.token = token;
     this.state.partyId = partyId;
     this.createChatManager(partyId, token);
