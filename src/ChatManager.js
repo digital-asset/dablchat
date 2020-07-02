@@ -1,3 +1,5 @@
+import { fetchPublicToken, siteSubDomain, getWellKnownParties } from './App'
+
 function parseJwt(token) {
   var base64Url = token.split('.')[1];
   var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -22,7 +24,6 @@ function sleep(ms) {
 }
 
 async function ChatManager(party, token, updateUser, updateState) {
-
   const ADDRESS_BOOK_TEMPLATE = 'Chat.V1:AddressBook'
   const CHAT_TEMPLATE = 'Chat.V1:Chat'
   const MESSAGE_TEMPLATE = 'Chat.V1:Message'
@@ -36,37 +37,10 @@ async function ChatManager(party, token, updateUser, updateState) {
     'Content-Type': 'application/json'
   }
 
-  const siteSubDomain = (path = '/data/') => {
-    if (window.location.hostname === 'localhost') {
-        return window.location.hostname + (window.location.port ? ':' + window.location.port : '');
-    }
-
-    let host = window.location.host.split('.')
-    const ledgerId = host[0];
-    let apiUrl = host.slice(1)
-    apiUrl.unshift('api')
-
-    return apiUrl.join('.') + (window.location.port ? ':' + window.location.port : '') + path + ledgerId;
-  }
-
   const post = (url, options = {}) => {
     Object.assign(options, { method: 'POST', headers });
 
     return fetch('//' + siteSubDomain() + url, options);
-  }
-
-  const fetchPublicToken = async () => {
-    const response = await fetch('//' + siteSubDomain('/api/ledger/') + '/public/token', { method: 'POST' });
-    const jsonResp = await response.json();
-    const accessToken = jsonResp['access_token'];
-    return accessToken;
-  }
-
-  const getWellKnownParties = async () => {
-    const url = window.location.host
-    const response = await fetch('//' + url + '/.well-known/dabl.json');
-    const dablJson = await response.json();
-    return dablJson
   }
 
   const createSession = async (operator, userName) => {
@@ -159,7 +133,8 @@ async function ChatManager(party, token, updateUser, updateState) {
       const allPublicContractsResponse = await postPublic('/v1/query', {
         body: JSON.stringify({ 'templateIds': [
           SELF_ALIAS_TEMPLATE,
-          MESSAGE_TEMPLATE
+          MESSAGE_TEMPLATE,
+          CHAT_TEMPLATE
         ] })
       });
 
@@ -173,9 +148,14 @@ async function ChatManager(party, token, updateUser, updateState) {
         .filter(m => m.templateId.endsWith(MESSAGE_TEMPLATE) && !userMessageContractIds.includes(m.contractId))
 
       const chats = allContracts.result.filter(c => c.templateId.endsWith(CHAT_TEMPLATE));
+      
+      console.log('current chats:', chats)
+      console.log('current public chates:', allPublicContracts.result.filter(c => c.templateId.endsWith(CHAT_TEMPLATE)))
+      
       const user = allContracts.result.find(u => u.templateId.endsWith(USER_TEMPLATE));
       const selfAlias = allContracts.result.find(ma => ma.templateId.endsWith(SELF_ALIAS_TEMPLATE));
       const addressBook = allContracts.result.find(ma => ma.templateId.endsWith(ADDRESS_BOOK_TEMPLATE));
+      console.log('user:', chats)
 
       const model = chats
         .sort((c1, c2) => c1.payload.name > c2.payload.name ? 1 : c1.payload.name < c2.payload.name ? -1 : 0)
@@ -211,6 +191,8 @@ async function ChatManager(party, token, updateUser, updateState) {
       updateState(Object.assign({}, {...user.payload, contractId: user.contractId}), model, aliases);
 
     } catch (e) {
+      console.log("Could not fetch contracts!", e)
+
       console.error("Could not fetch contracts!", e)
     }
   }

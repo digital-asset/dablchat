@@ -20,13 +20,11 @@ const Login = props => {
 
   return (
     <div className="login-container">
-      
       <div className="login">
       <img className="close-icon"
           src={closeIcon}
           alt="command"
-          onClick={onRequestClose}
-        />
+          onClick={onRequestClose}/>
         <form className="login-form" onSubmit={handleSubmit}>
           {showLoginWithDABL && (
             <>
