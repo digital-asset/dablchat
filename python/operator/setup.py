@@ -5,6 +5,6 @@ setup(name='dablchat-operator-bot',
       description='DABL Chat Operator',
       author='Digital Asset',
       license='Apache2',
-      install_requires=['dazl'],
+      install_requires=['dazl>=7,<8'],
       packages=['bot'],
       include_package_data=True)
