@@ -6,7 +6,8 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-dazl = {editable = true,path = "./../../../../python"}
+dazl = "*"
+aiohttp = "*"
 
 [requires]
 python_version = "3.7"

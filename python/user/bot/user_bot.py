@@ -12,9 +12,9 @@ dazl.setup_default_logger(logging.INFO)
 EPOCH = datetime.datetime.utcfromtimestamp(0)
 
 class CHAT:
-    ArchiveMessagesRequest = 'Chat.V1.ArchiveMessagesRequest'
-    Message = 'Chat.V1.Message'
-    UserSettings = 'Chat.V1.UserSettings'
+    ArchiveMessagesRequest = 'Chat.V1:ArchiveMessagesRequest'
+    Message = 'Chat.V1:Message'
+    UserSettings = 'Chat.V1:UserSettings'
 
 
 def main():

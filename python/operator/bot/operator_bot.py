@@ -10,20 +10,20 @@ dazl.setup_default_logger(logging.INFO)
 
 
 class CHAT:
-    AliasesRequest = 'Chat.V1.AliasesRequest'
-    Chat = 'Chat.V1.Chat'
-    CreateChatRequest = 'Chat.V1.CreateChatRequest'
-    ForwardToSlack = 'Chat.V1.ForwardToSlack'
-    Message = 'Chat.V1.Message'
-    Operator = 'Chat.V1.Operator'
-    SelfAlias = 'Chat.V1.SelfAlias'
-    User = 'Chat.V1.User'
-    UserSession = 'Chat.V1.UserSession'
+    AliasesRequest = 'Chat.V1:AliasesRequest'
+    Chat = 'Chat.V1:Chat'
+    CreateChatRequest = 'Chat.V1:CreateChatRequest'
+    ForwardToSlack = 'Chat.V1:ForwardToSlack'
+    Message = 'Chat.V1:Message'
+    Operator = 'Chat.V1:Operator'
+    SelfAlias = 'Chat.V1:SelfAlias'
+    User = 'Chat.V1:User'
+    UserSession = 'Chat.V1:UserSession'
 
 
 class SLACK_INTEGRATION:
     class OUTBOUND_MESSAGE:
-        OutboundMessage = 'SlackIntegration.OutboundMessage.OutboundMessage'
+        OutboundMessage = 'SlackIntegration.OutboundMessage:OutboundMessage'
 
 
 def main():
