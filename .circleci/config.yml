@@ -45,6 +45,7 @@ jobs:
           key: daml-{{ checksum "daml.yaml" }}
       - run:
           command: |
+            pip install yq
             sudo pip install pipenv
             pipenv install
       - run:
