@@ -1,3 +1,11 @@
+BASENAME=$(shell yq -r '.catalog.name' < dabl-meta.yaml)
+VERSION=$(shell yq -r '.catalog.version' < dabl-meta.yaml)
+
+TAG_NAME=${BASENAME}-v${VERSION}
+NAME=${BASENAME}-${VERSION}
+DAR_NAME=${BASENAME}.dar
+
+
 PYTHON := pipenv run python
 
 target_dir := target
@@ -12,9 +20,18 @@ user_bot := target/dablchat-user-bot-$(user_bot_version).tar.gz
 ui := target/dablchat-ui-$(ui_version).zip
 dabl_meta := $(target_dir)/dabl-meta.yaml
 
-.PHONY: package
-package: $(target_dir) $(operator_bot) $(user_bot) $(dar) $(ui) $(dabl_meta)
-	cd $(target_dir) && zip dabl-chat.dit *
+.PHONY: all package publish
+
+all: package
+
+publish: package
+	git tag -f "${TAG_NAME}"
+	ghr -replace "${TAG_NAME}" "$(target_dir)/${NAME}.dit"
+
+package: $(target_dir)/${NAME}.dit
+
+$(target_dir)/${NAME}.dit: $(target_dir) $(operator_bot) $(user_bot) $(dar) $(ui) $(dabl_meta)
+	cd $(target_dir) && zip ${NAME}.dit *
 
 $(target_dir):
 	mkdir $@
