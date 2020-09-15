@@ -344,6 +344,13 @@ textarea.message-input {
   background-color: white;
   display: flex;
   align-items:  center;
+  flex-direction: column;
+}
+
+.close-icon {
+  width: 16px;
+  align-self: flex-end;
+  margin: 10px;
 }
 
 .login-form {

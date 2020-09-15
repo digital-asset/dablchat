@@ -152,11 +152,40 @@ async function makeChatName() {
     return chatName
 }
 
+export const fetchPublicToken = async () => {
+  const response = await fetch('//' + siteSubDomain('/api/ledger/') + '/public/token', { method: 'POST' });
+  const jsonResp = await response.json();
+  const accessToken = jsonResp['access_token'];
+  return accessToken;
+}
+
+export const getWellKnownParties = async () => {
+  console.log('getting public party ')
+  const url = window.location.host
+  const response = await fetch('//' + url + '/.well-known/dabl.json');
+  const dablJson = await response.json();
+  return dablJson
+}
+
+export const siteSubDomain = (path = '/data/') => {
+  if (window.location.hostname === 'localhost') {
+      return window.location.hostname + (window.location.port ? ':' + window.location.port : '');
+  }
+
+  let host = window.location.host.split('.')
+  const ledgerId = host[0];
+  let apiUrl = host.slice(1)
+  apiUrl.unshift('api')
+
+  return apiUrl.join('.') + (window.location.port ? ':' + window.location.port : '') + path + ledgerId;
+}
+
 const INITIAL_STATE = {
+  loggedIn: false,
   partyId: '',
   token: '',
   partyName: '',
-  showLogin: true,
+  showLogin: false,
   showWelcome: false,
   chatUser: null,
   currentChat: null,
@@ -173,8 +202,8 @@ class App extends Component {
     this.state = INITIAL_STATE;
     const url = new URL(window.location)
     const urlParams = new URLSearchParams(url.search)
-    const partyId = urlParams.get('party') || localStorage.getItem('party.id')
-    const token = urlParams.get('token') || localStorage.getItem('party.token')
+
+    console.log('HELLO WORLD!')
 
     this.handleInput = this.handleInput.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
@@ -188,12 +217,10 @@ class App extends Component {
     this.startPolling = this.startPolling.bind(this);
     this.stopPolling = this.stopPolling.bind(this);
 
-    if (!!partyId && !!token) {
-      this.state.token = token;
-      this.state.partyId = partyId;
-      this.state.showLogin = false;
-      this.createChatManager(partyId, token);
-    }
+    const userPartyId = urlParams.get('party') || localStorage.getItem('party.id')
+    const userToken = urlParams.get('token') || localStorage.getItem('party.token')
+
+    this.createChatManager(userPartyId, userToken);
   }
 
   handleInput(event) {
@@ -220,17 +247,22 @@ class App extends Component {
       })
   }
 
-  handleLogout(event) {
+  async handleLogout(event) {
     event.preventDefault();
     localStorage.removeItem("party.id");
     localStorage.removeItem("party.token");
     localStorage.removeItem("operator.id")
-    this.stopPolling();
+    const parties = await this.getWellKnownParties();
+    const currentParty =  parties['publicParty'];
+
+    console.log('logging out')
+
     this.setState({
-      partyId: '',
-      token: '',
+      loggedIn: false,
+      partyId: currentParty,
+      token: await this.fetchPublicToken(),
       partyName: '',
-      showLogin: true,
+      showLogin: false,
       showWelcome: false,
       chatUser: null,
       currentChat: null,
@@ -243,6 +275,23 @@ class App extends Component {
   }
 
   async createChatManager(partyId, token) {
+
+    if (!!partyId & !!token) {
+      this.state.partyId = partyId
+      this.state.token = token
+      console.log('using a PARTY token')
+    } else {
+        const currentToken = await fetchPublicToken();
+        const parties = await getWellKnownParties();
+        const currentParty =  parties['publicParty'];
+        this.state.partyId = currentParty
+        this.state.token = currentToken
+        console.log('using a PUBLIC token')
+    }
+    console.log('creating chat manager with', partyId, token)
+
+    this.state.loggedIn = true
+    console.log('loggedIn = ', this.state.loggedIn)
     try {
       this.chatManager = await ChatManager(partyId, token, this.updateUser, this.updateState)
       localStorage.setItem("party.id", partyId);
@@ -470,6 +519,7 @@ class App extends Component {
 
   render() {
     const {
+      loggedIn,
       token,
       partyId,
       partyName,
@@ -484,15 +534,14 @@ class App extends Component {
     } = this.state;
 
     const isPublic = currentChat && currentChat.isPublic;
-
+    console.log('partyId and token: ', partyId, '::',token)
+    
     return (
       <div className="App">
         <aside className="sidebar left-sidebar">
-          {partyName ? (
             <div className="user-profile" onClick={() => this.setState(this.updateCurrentChat(null))}>
-              <span className="username">{partyName}</span>
+              <span className="username">{partyName? partyName: 'PublicParty'}</span>
             </div>
-          ) : null}
           {!!chats ? (<div className="channels-box">
             <h4>Chat Topics:</h4>
             <ChatList
@@ -647,12 +696,20 @@ class App extends Component {
           </footer>
         </section>
         <aside className="sidebar right-sidebar">
+          {loggedIn?
           <div className="logout" onClick={this.handleLogout}>
             <span className="logout-button">
               <span>Log out</span>
               <img className="logout-icon" src={logoutIcon} alt="log out" />
             </span>
           </div>
+          :
+          <div className="logout" onClick={() => this.setState({showLogin: true})}>
+              <span className="logout-button">
+                <span>Log in</span>
+                <img className="logout-icon" src={logoutIcon} alt="log out" />
+              </span>
+          </div>}
           {currentChat ? (
             <div className="chat-members-box">
             <h4>creator:</h4>
@@ -674,6 +731,7 @@ class App extends Component {
             handleUserInput={this.handleInput}
             handleTokenInput={this.handleInput}
             handleSubmit={this.handleSubmit}
+            onRequestClose={()=> this.setState({showLogin:false})}
           />
         ) : showWelcome ? (
           <NewUser
