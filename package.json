@@ -1,19 +1,19 @@
 {
   "name": "dablchat",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "private": true,
   "dependencies": {
     "@webscopeio/react-textarea-autocomplete": "^4.6.1",
-    "emoji-mart": "^2.11.1",
-    "http-proxy-middleware": "^0.20.0",
+    "emoji-mart": "^3.0.0",
+    "http-proxy-middleware": "^1.0.5",
     "react": "^16.11.0",
     "react-dom": "^16.11.0",
     "react-markdown": "^4.2.2",
-    "react-scripts": "3.2.0",
+    "react-scripts": "3.4.3",
     "react-scroll": "^1.7.14",
-    "react-syntax-highlighter": "^11.0.2",
+    "react-syntax-highlighter": "^13.5.3",
     "skeleton-css": "^2.0.4",
-    "uuid": "^3.3.3"
+    "uuid": "^8.3.0"
   },
   "scripts": {
     "start": "react-scripts start",

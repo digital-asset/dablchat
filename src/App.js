@@ -18,7 +18,7 @@ import 'skeleton-css/css/skeleton.css';
 import "@webscopeio/react-textarea-autocomplete/style.css";
 import './App.css';
 import ChatSession from './components/ChatSession';
-import * as uuid from 'uuid/v4';
+import { v4 as uuidv4 } from 'uuid';
 
 const Loading = ({ data }) => <div>Loading</div>
 const CommandAutoCompleteItem = ({ entity }) => {
@@ -146,7 +146,7 @@ async function makeChatName() {
     return adjectives.data[Math.floor(Math.random() * adjectives.data.length)].adjective.value
       + '-' + nouns.data[Math.floor(Math.random() * nouns.data.length)].noun.value
   }).catch((e) => {
-      return uuid()
+      return uuidv4()
     })
 
     return chatName

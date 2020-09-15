@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='dablchat-user-bot',
-      version='1.8.1',
+      version='1.8.2',
       description='DABL Chat User',
       author='Digital Asset',
       license='Apache2',
