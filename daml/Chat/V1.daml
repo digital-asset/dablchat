@@ -318,7 +318,7 @@ template Chat
         postedAt : Text
       controller poster
       do
-        assert (elem poster members)
+        assert $ poster `elem` members
         create Message with sender = poster, recipients = dedup $ chatSignatory :: observers, ..
 
     choice ChatAddMembers : ContractId Chat
@@ -328,7 +328,7 @@ template Chat
       controller member
       do
         assert (isPublic || member == creator)
-        assert (not $ all (\nm -> elem nm members) newMembers)
+        assert (not $ all (`elem` members) newMembers)
         create this with members = dedup $ newMembers ++ members
 
     choice ChatRemoveMembers : ContractId Chat
@@ -338,8 +338,8 @@ template Chat
       controller member
       do
         assert (member == creator || (dedup membersToRemove) == [member])
-        assert (or $ map (\nm -> elem nm members) membersToRemove)
-        create this with members = L.filter (\m -> not (elem m membersToRemove)) members
+        assert (any (`elem` members) membersToRemove)
+        create this with members = L.filter (`notElem` membersToRemove) members
 
     controller chatSignatory can
       ChatSignatoryArchive : ()
