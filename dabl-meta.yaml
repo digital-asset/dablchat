@@ -9,7 +9,7 @@ catalog:
     license: Apache-2.0
     demo_url: https://w6kzs3rw2jlpks5l.projectdabl.com/
 subdeployments:
-    - dablchat-model-1.8.2.dar
-    - dablchat-operator-bot-1.8.2.tar.gz
-    - dablchat-ui-1.8.2.zip
-    - dablchat-user-bot-1.8.2.tar.gz
+    - dablchat-model-1.8.3.dar
+    - dablchat-operator-bot-1.8.3.tar.gz
+    - dablchat-ui-1.8.3.zip
+    - dablchat-user-bot-1.8.3.tar.gz
