@@ -1,9 +1,9 @@
 catalog:
     name: dabl-chat
-    version: 0.1.2
+    version: 0.1.3
     short_description: DABL Chat
     description: A straightforward web chat app.
-    release_date: 2020-09-15
+    release_date: 2020-09-29
     author: Digital Asset (Switzerland) GmbH
     url: https://github.com/digital-asset/dablchat
     license: Apache-2.0
