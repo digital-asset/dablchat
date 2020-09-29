@@ -11,7 +11,7 @@ catalog:
     tags: [dabl-sample-app, application]
     icon_file: dabl-chat.png
 subdeployments:
-    - dablchat-model-1.8.3.dar
-    - dablchat-operator-bot-1.8.3.tar.gz
-    - dablchat-ui-1.8.3.zip
-    - dablchat-user-bot-1.8.3.tar.gz
+    - dablchat-model-1.8.4.dar
+    - dablchat-operator-bot-1.8.4.tar.gz
+    - dablchat-ui-1.8.4.zip
+    - dablchat-user-bot-1.8.4.tar.gz

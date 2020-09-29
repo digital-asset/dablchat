@@ -24,13 +24,13 @@ function sleep(ms) {
 
 async function ChatManager(party, token, updateUser, updateState) {
 
-  const ADDRESS_BOOK_TEMPLATE = 'Chat.V1:AddressBook'
-  const CHAT_TEMPLATE = 'Chat.V1:Chat'
-  const MESSAGE_TEMPLATE = 'Chat.V1:Message'
-  const SELF_ALIAS_TEMPLATE = 'Chat.V1:SelfAlias'
-  const USER_TEMPLATE = 'Chat.V1:User'
-  const USER_INVITATION_TEMPLATE = 'Chat.V1:UserInvitation'
-  const USER_SESSION_TEMPLATE = 'Chat.V1:UserSession'
+  const ADDRESS_BOOK_TEMPLATE = 'Chat.V2:AddressBook'
+  const CHAT_TEMPLATE = 'Chat.V2:Chat'
+  const MESSAGE_TEMPLATE = 'Chat.V2:Message'
+  const SELF_ALIAS_TEMPLATE = 'Chat.V2:SelfAlias'
+  const USER_TEMPLATE = 'Chat.V2:User'
+  const USER_INVITATION_TEMPLATE = 'Chat.V2:UserInvitation'
+  const USER_ACCOUNT_REQUEST_TEMPLATE = 'Chat.V2:UserAccountRequest'
 
   const headers = {
     "Authorization": `Bearer ${token.toString()}`,
@@ -70,10 +70,10 @@ async function ChatManager(party, token, updateUser, updateState) {
     return dablJson
   }
 
-  const createSession = async (operator, userName) => {
+  const createUserAccountRequest = async (operator, userName) => {
     return post('/v1/create', {
       body: JSON.stringify({
-        templateId: USER_SESSION_TEMPLATE,
+        templateId: USER_ACCOUNT_REQUEST_TEMPLATE,
         payload: {
           operator,
           user: party,
@@ -102,9 +102,9 @@ async function ChatManager(party, token, updateUser, updateState) {
   }
 
   const userName = parseUserName(token)
-  const createSessionResponse = await createSession(operatorId, userName);
+  const createUserAccountRequestResponse = await createUserAccountRequest(operatorId, userName);
 
-  switch (createSessionResponse.status) {
+  switch (createUserAccountRequestResponse.status) {
     case 401:
       throw new Error("Authentication failed")
     case 404:
@@ -221,7 +221,7 @@ async function ChatManager(party, token, updateUser, updateState) {
       body: JSON.stringify({
         templateId: USER_INVITATION_TEMPLATE,
         contractId: userInvitation.contractId,
-        choice: 'UserInvitationAccept',
+        choice: 'UserInvitation_Accept',
         argument: {}
       })
     })
@@ -234,7 +234,7 @@ async function ChatManager(party, token, updateUser, updateState) {
       body: JSON.stringify({
         templateId: CHAT_TEMPLATE,
         contractId: chat.contractId,
-        choice: 'ChatPostMessage',
+        choice: 'Chat_PostMessage',
         argument: {
           poster: user.user,
           message: message,
@@ -249,7 +249,7 @@ async function ChatManager(party, token, updateUser, updateState) {
       body: JSON.stringify({
         templateId: USER_TEMPLATE,
         contractId: user.contractId,
-        choice: 'UserRequestPrivateChat',
+        choice: 'User_RequestPrivateChat',
         argument: {
           name : name,
           members : members,
@@ -264,7 +264,7 @@ async function ChatManager(party, token, updateUser, updateState) {
       body: JSON.stringify({
         templateId: USER_TEMPLATE,
         contractId: user.contractId,
-        choice: 'UserRequestPublicChat',
+        choice: 'User_RequestPublicChat',
         argument: {
           name : name,
           topic : topic
@@ -278,7 +278,7 @@ async function ChatManager(party, token, updateUser, updateState) {
       body: JSON.stringify({
         templateId: CHAT_TEMPLATE,
         contractId: chat.contractId,
-        choice: 'ChatAddMembers',
+        choice: 'Chat_AddMembers',
         argument: {
           member: user.user,
           newMembers: newMembers
@@ -292,7 +292,7 @@ async function ChatManager(party, token, updateUser, updateState) {
       body: JSON.stringify({
         templateId: CHAT_TEMPLATE,
         contractId: chat.contractId,
-        choice: 'ChatRemoveMembers',
+        choice: 'Chat_RemoveMembers',
         argument: {
           member: user.user,
           membersToRemove: membersToRemove
@@ -306,7 +306,7 @@ async function ChatManager(party, token, updateUser, updateState) {
       body: JSON.stringify({
         templateId: USER_TEMPLATE,
         contractId: user.contractId,
-        choice: 'UserUpdateSelfAlias',
+        choice: 'User_UpdateSelfAlias',
         argument: {
           alias
         }
@@ -319,7 +319,7 @@ async function ChatManager(party, token, updateUser, updateState) {
       body: JSON.stringify({
         templateId: ADDRESS_BOOK_TEMPLATE,
         key: user.user,
-        choice: 'AddressBookAdd',
+        choice: 'AddressBook_Add',
         argument: {
           party,
           name
@@ -333,7 +333,7 @@ async function ChatManager(party, token, updateUser, updateState) {
       body: JSON.stringify({
         templateId: ADDRESS_BOOK_TEMPLATE,
         key: user.user,
-        choice: 'AddressBookRemove',
+        choice: 'AddressBook_Remove',
         argument: {
           party
         }
@@ -346,7 +346,7 @@ async function ChatManager(party, token, updateUser, updateState) {
       body: JSON.stringify({
         templateId: USER_TEMPLATE,
         contractId: user.contractId,
-        choice: 'UserRequestAliases',
+        choice: 'User_RequestAliases',
         argument: {}
       })
     })
@@ -357,7 +357,7 @@ async function ChatManager(party, token, updateUser, updateState) {
       body: JSON.stringify({
         templateId: CHAT_TEMPLATE,
         contractId: chat.contractId,
-        choice: 'ChatRename',
+        choice: 'Chat_Rename',
         argument: {
           newName: newName,
           newTopic: newTopic
@@ -371,7 +371,7 @@ async function ChatManager(party, token, updateUser, updateState) {
       body: JSON.stringify({
         templateId: CHAT_TEMPLATE,
         contractId: chat.contractId,
-        choice: 'ChatArchive',
+        choice: 'Chat_Archive',
         argument: {}
       })
     })
@@ -382,7 +382,7 @@ async function ChatManager(party, token, updateUser, updateState) {
       body: JSON.stringify({
         templateId: CHAT_TEMPLATE,
         contractId: chat.contractId,
-        choice: 'ChatForwardToSlack',
+        choice: 'Chat_ForwardToSlack',
         argument: {
           slackChannelId
         }
