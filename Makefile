@@ -19,6 +19,7 @@ operator_bot := target/dablchat-operator-bot-$(operator_bot_version).tar.gz
 user_bot := target/dablchat-user-bot-$(user_bot_version).tar.gz
 ui := target/dablchat-ui-$(ui_version).zip
 dabl_meta := $(target_dir)/dabl-meta.yaml
+icon := $(target_dir)/dabl-chat.png
 
 .PHONY: all package publish
 
@@ -30,7 +31,7 @@ publish: package
 
 package: $(target_dir)/${NAME}.dit
 
-$(target_dir)/${NAME}.dit: $(target_dir) $(operator_bot) $(user_bot) $(dar) $(ui) $(dabl_meta)
+$(target_dir)/${NAME}.dit: $(target_dir) $(operator_bot) $(user_bot) $(dar) $(ui) $(dabl_meta) $(icon)
 	cd $(target_dir) && zip ${NAME}.dit *
 
 $(target_dir):
@@ -43,6 +44,9 @@ $(dar):
 
 $(dabl_meta): $(target_dir) dabl-meta.yaml
 	cp dabl-meta.yaml $@
+
+$(icon): $(target_dir) dabl-chat.png
+	cp dabl-chat.png $@
 
 $(operator_bot):
 	cd python/operator && $(PYTHON) setup.py sdist
