@@ -1,9 +1,8 @@
 daml 1.2
-module Chat.V1 where
+module Chat.V2 where
 
 import DA.List as L
 import DA.Next.Map as M
-
 
 template Operator
   with
@@ -16,7 +15,7 @@ template Operator
     maintainer key
 
     controller operator can
-      nonconsuming OperatorInviteUser : ContractId UserInvitation
+      nonconsuming Operator_InviteUser : ContractId UserInvitation
         with
           user : Party
           userName : Text
@@ -24,18 +23,16 @@ template Operator
           create UserInvitation with ..
 
 
-template UserSession
+template UserAccountRequest
   with
     operator : Party
     user : Party
     userName : Text
   where
     signatory user
-    key user : Party
-    maintainer key
 
     controller operator can
-      UserSessionAck : Either (ContractId UserInvitation) (ContractId User)
+      UserAccountRequest_Accept : Either (ContractId UserInvitation) (ContractId User)
         do
           let userKey = (operator, user)
           optUserInvitation <- lookupByKey @UserInvitation userKey
@@ -43,12 +40,12 @@ template UserSession
           case (optUserInvitation, optUser) of
             (None, None) -> do
               (opCid, _) <- fetchByKey @Operator operator
-              userInvitationCid <- exercise opCid OperatorInviteUser with ..
+              userInvitationCid <- exercise opCid Operator_InviteUser with ..
               return $ Left userInvitationCid
             (Some userInvitationCid, _) -> return $ Left userInvitationCid
             (_, Some userCid) -> return $ Right userCid
 
-      UserSessionReject : ()
+      UserAccountRequest_Reject : ()
         do return ()
 
 
@@ -65,7 +62,7 @@ template UserInvitation
     maintainer key._1
 
     controller user can
-      UserInvitationAccept : ContractId User
+      UserInvitation_Accept : ContractId User
         do
           let contacts = M.fromList [(operator, "Operator")]
           create AddressBook with ..
@@ -77,7 +74,7 @@ template UserInvitation
                     chatId = partyToText user, isPublic = False, ..
           create User with ..
 
-      UserInvitationReject : ()
+      UserInvitation_Reject : ()
         do return ()
 
 
@@ -94,14 +91,14 @@ template User
     maintainer key._1
 
     controller user can
-      nonconsuming UserRequestPublicChat : ContractId CreateChatRequest
+      nonconsuming User_RequestPublicChat : ContractId CreateChatRequest
         with
           name : Text
           topic : Optional Text
         do
           create CreateChatRequest with members = [], isPublic = True, ..
 
-      nonconsuming UserRequestPrivateChat : ContractId CreateChatRequest
+      nonconsuming User_RequestPrivateChat : ContractId CreateChatRequest
         with
           name : Text
           members : [Text]
@@ -109,14 +106,14 @@ template User
         do
           create CreateChatRequest with isPublic = False, ..
 
-      nonconsuming UserUpdateSelfAlias : Optional (ContractId SelfAlias)
+      nonconsuming User_UpdateSelfAlias : Optional (ContractId SelfAlias)
         with
           alias : Text
         do
           optAliasCid <- lookupByKey @SelfAlias (operator, user)
           case optAliasCid of
             Some cid | alias /= "" -> do
-                newCid <- exercise cid SelfAliasRename with newAlias = alias
+                newCid <- exercise cid SelfAlias_Rename with newAlias = alias
                 return $ Some newCid
             Some cid | alias == "" -> do
               archive cid
@@ -126,14 +123,14 @@ template User
               return $ Some cid
             _ -> return None
 
-      nonconsuming UserRequestAliases : ContractId AliasesRequest
+      nonconsuming User_RequestAliases : ContractId AliasesRequest
         do create AliasesRequest with ..
 
-      nonconsuming UserRequestArchiveMessages : ContractId ArchiveMessagesRequest
+      nonconsuming User_RequestArchiveMessages : ContractId ArchiveMessagesRequest
         do create ArchiveMessagesRequest with ..
 
     controller operator can
-      UserOffboard : ()
+      User_Offboard : ()
         do return ()
 
 
@@ -170,7 +167,7 @@ template AddressBook
     maintainer key
 
     controller user can
-      AddressBookAdd : ContractId AddressBook
+      AddressBook_Add : ContractId AddressBook
         with
           party : Party
           name : Text
@@ -178,7 +175,7 @@ template AddressBook
           assert $ party /= operator
           create this with contacts = insert party name contacts
 
-      AddressBookRemove : ContractId AddressBook
+      AddressBook_Remove : ContractId AddressBook
         with
           party : Party
         do
@@ -211,7 +208,7 @@ template CreateChatRequest
     signatory operator, user
 
     controller operator can
-      CreateChatRequestRespond : Optional (ContractId Chat)
+      CreateChatRequest_Respond : Optional (ContractId Chat)
         with
           partyMembers : [Party]
           chatId : Text
@@ -223,7 +220,7 @@ template CreateChatRequest
               chatCid <- create Chat with creator = user, members = dedup (user :: partyMembers), ..
               return $ Some chatCid
 
-      CreateChatRequestReject : ()
+      CreateChatRequest_Reject : ()
         do return ()
 
 
@@ -242,14 +239,14 @@ template SelfAlias
     maintainer key._2
 
     controller user can
-      SelfAliasRename : ContractId SelfAlias
+      SelfAlias_Rename : ContractId SelfAlias
         with
           newAlias : Text
         do
           create this with alias = newAlias
 
     controller operator can
-      SelfAliasArchive : ()
+      SelfAlias_Archive : ()
         do return ()
 
 
@@ -274,14 +271,14 @@ template ForwardToSlack
     maintainer key._2
 
     controller user can
-      ForwardToSlackUpdateChannel : ContractId ForwardToSlack
+      ForwardToSlack_UpdateChannel : ContractId ForwardToSlack
         with
           newSlackChannelId : Text
         do
           create this with slackChannelId = newSlackChannelId
 
     controller operator can
-      ForwardToSlackArchive : ()
+      ForwardToSlack_Archive : ()
         do return ()
 
 
@@ -311,7 +308,7 @@ template Chat
     key (chatSignatory, if isPublic then name else chatId) : (Party, Text)
     maintainer key._1
 
-    nonconsuming choice ChatPostMessage : ContractId Message
+    nonconsuming choice Chat_PostMessage : ContractId Message
       with
         poster : Party
         message : Text
@@ -321,7 +318,7 @@ template Chat
         assert $ poster `elem` members
         create Message with sender = poster, recipients = dedup $ chatSignatory :: observers, ..
 
-    choice ChatAddMembers : ContractId Chat
+    choice Chat_AddMembers : ContractId Chat
       with
         member : Party
         newMembers : [Party]
@@ -331,7 +328,7 @@ template Chat
         assert (not $ all (`elem` members) newMembers)
         create this with members = dedup $ newMembers ++ members
 
-    choice ChatRemoveMembers : ContractId Chat
+    choice Chat_RemoveMembers : ContractId Chat
       with
         member : Party
         membersToRemove : [Party]
@@ -346,7 +343,7 @@ template Chat
         do return ()
 
     controller creator can
-      ChatRename : ContractId Chat
+      Chat_Rename : ContractId Chat
         with
           newName : Text
           newTopic : Optional Text
@@ -354,17 +351,17 @@ template Chat
           assert (newName /= name || newTopic /= topic)
           create this with name = newName, topic = newTopic
 
-      ChatArchive : ()
+      Chat_Archive : ()
         do return ()
 
-      nonconsuming ChatForwardToSlack : Optional (ContractId ForwardToSlack)
+      nonconsuming Chat_ForwardToSlack : Optional (ContractId ForwardToSlack)
         with
           slackChannelId : Text
         do
           optForwardToSlack <- lookupByKey @ForwardToSlack (operator, creator, chatId)
           case optForwardToSlack of
             Some cid | slackChannelId /= "" -> do
-                newCid <- exercise cid ForwardToSlackUpdateChannel
+                newCid <- exercise cid ForwardToSlack_UpdateChannel
                   with newSlackChannelId = slackChannelId
                 return $ Some newCid
             Some cid | slackChannelId == "" -> do

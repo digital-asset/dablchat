@@ -11,9 +11,9 @@ EPOCH = datetime.datetime.utcfromtimestamp(0)
 
 
 class Chat:
-    ArchiveMessagesRequest = 'Chat.V1:ArchiveMessagesRequest'
-    Message = 'Chat.V1:Message'
-    UserSettings = 'Chat.V1:UserSettings'
+    ArchiveMessagesRequest = 'Chat.V2:ArchiveMessagesRequest'
+    Message = 'Chat.V2:Message'
+    UserSettings = 'Chat.V2:UserSettings'
 
 
 def main():

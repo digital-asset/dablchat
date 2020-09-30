@@ -10,15 +10,15 @@ dazl.setup_default_logger(logging.INFO)
 
 
 class Chat:
-    AliasesRequest = 'Chat.V1:AliasesRequest'
-    Chat = 'Chat.V1:Chat'
-    CreateChatRequest = 'Chat.V1:CreateChatRequest'
-    ForwardToSlack = 'Chat.V1:ForwardToSlack'
-    Message = 'Chat.V1:Message'
-    Operator = 'Chat.V1:Operator'
-    SelfAlias = 'Chat.V1:SelfAlias'
-    User = 'Chat.V1:User'
-    UserSession = 'Chat.V1:UserSession'
+    AliasesRequest = 'Chat.V2:AliasesRequest'
+    Chat = 'Chat.V2:Chat'
+    CreateChatRequest = 'Chat.V2:CreateChatRequest'
+    ForwardToSlack = 'Chat.V2:ForwardToSlack'
+    Message = 'Chat.V2:Message'
+    Operator = 'Chat.V2:Operator'
+    SelfAlias = 'Chat.V2:SelfAlias'
+    User = 'Chat.V2:User'
+    UserAccountRequest = 'Chat.V2:UserAccountRequest'
 
 
 class SlackIntegration:
@@ -49,22 +49,44 @@ def main():
                                         {'operator': client.party, 'publicParty': public_party})
         else:
             logging.info(f'Operator {party} is ready')
-            user_sessions = client.find_active(Chat.UserSession)
-            logging.info(f'found {len(user_sessions)} {Chat.UserSession} contracts')
-            return [exercise(cid, 'UserSessionAck') for cid in user_sessions.keys()]
+            user_account_requests = client.find_active(Chat.UserAccountRequest)
+            logging.info(f'found {len(user_account_requests)} {Chat.UserAccountRequest} contracts')
+
+            seen_users = set()
+            request_cids_to_accept = []
+            request_cids_to_archive = []
+
+            for cid, cdata in user_account_requests:
+                requesting_user = cdata['user']
+
+                if requesting_user in seen_users:
+                    request_cids_to_archive.append(cid)
+                else:
+                    request_cids_to_accept.append(cid)
+
+                seen_users.add(requesting_user)
+
+            logging.info(f'found {len(request_cids_to_accept)} requests to accept '
+                         f'and {len(request_cids_to_archive)} duplicated requests to archive')
+
+            commands_to_run =\
+                [exercise(cid, 'UserAccountRequest_Accept') for cid in request_cids_to_accept] + \
+                [exercise(cid, 'UserAccountRequest_Reject') for cid in request_cids_to_archive]
+
+            return commands_to_run
 
     @client.ledger_created(Chat.Operator)
     def invite_users(_):
         logging.info(f'On {Chat.Operator} created!')
-        user_sessions = client.find_active(Chat.UserSession)
-        logging.info(f'found {len(user_sessions)} {Chat.UserSession} contracts')
+        user_account_requests = client.find_active(Chat.UserAccountRequest)
+        logging.info(f'found {len(user_account_requests)} {Chat.UserAccountRequest} contracts')
 
-        return [exercise(cid, 'UserSessionAck') for cid in user_sessions.keys()]
+        return [exercise(cid, 'UserAccountRequest_Accept') for cid in user_account_requests.keys()]
 
-    @client.ledger_created(Chat.UserSession)
+    @client.ledger_created(Chat.UserAccountRequest)
     def invite_user_to_chat(event):
-        logging.info(f'On {Chat.UserSession} created!')
-        return client.submit_exercise(event.cid, 'UserSessionAck')
+        logging.info(f'On {Chat.UserAccountRequest} created!')
+        return client.submit_exercise(event.cid, 'UserAccountRequest_Accept')
 
     @client.ledger_created(Chat.Message)
     def send_to_slack_channel(event):
@@ -100,7 +122,7 @@ def main():
                         Chat.Chat,
                         {'_1': client.party,
                          '_2': event.cdata['user']},
-                        'ChatPostMessage',
+                        'Chat_PostMessage',
                         {
                             'poster': client.party,
                             'message': known_users_message,
@@ -122,7 +144,7 @@ def main():
         commands = []
         for (cid, cdata) in chats.items():
             if new_user not in cdata['members']:
-                commands.append(exercise(cid, 'ChatAddMembers', {
+                commands.append(exercise(cid, 'Chat_AddMembers', {
                     'member': client.party,
                     'newMembers': [new_user]
                 }))
@@ -146,12 +168,12 @@ def main():
                 party_members.append(data['user'])
 
         if party_members:
-            return client.submit_exercise(event.cid, 'CreateChatRequestRespond', {
+            return client.submit_exercise(event.cid, 'CreateChatRequest_Respond', {
                 'partyMembers': party_members,
                 'chatId': str(uuid.uuid4())
             })
         else:
-            return client.submit_exercise(event.cid, 'CreateChatRequestReject')
+            return client.submit_exercise(event.cid, 'CreateChatRequest_Reject')
 
     network.run_forever()
 
