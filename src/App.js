@@ -171,10 +171,12 @@ class App extends Component {
   constructor() {
     super();
     this.state = INITIAL_STATE;
-    const url = new URL(window.location)
-    const urlParams = new URLSearchParams(url.search)
-    const partyId = urlParams.get('party') || localStorage.getItem('party.id')
-    const token = urlParams.get('token') || localStorage.getItem('party.token')
+    const url = new URL(window.location);
+    const urlParams = new URLSearchParams(url.search);
+    const partyId = urlParams.get('party') || localStorage.getItem('party.id');
+    const tokenCookiePair = document.cookie.split('; ').find(row => row.startsWith('DABL_LEDGER_ACCESS_TOKEN')) || '';
+    const tokenCookieSecret = tokenCookiePair.slice(tokenCookiePair.indexOf('=') + 1);
+    const token = tokenCookieSecret || urlParams.get('token') || localStorage.getItem('party.token');
 
     this.handleInput = this.handleInput.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
