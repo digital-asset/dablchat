@@ -2,7 +2,7 @@ import os
 from setuptools import setup
 
 setup(name='dablchat-user-bot',
-      version=os.environ['DDIT_VERSION'],
+      version=os.environ.get('DDIT_VERSION', 'release'),
       description='DABL Chat User',
       author='Digital Asset',
       license='Apache2',
