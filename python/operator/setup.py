@@ -2,7 +2,7 @@ import os
 from setuptools import setup
 
 setup(name='dablchat-operator-bot',
-      version=os.environ['DDIT_VERSION'],
+      version=os.environ.get('DDIT_VERSION', 'release'),
       description='DABL Chat Operator',
       author='Digital Asset',
       license='Apache2',
