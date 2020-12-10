@@ -37,17 +37,11 @@ async function ChatManager(party, token, updateUser, updateState) {
     'Content-Type': 'application/json'
   }
 
-  const siteSubDomain = (path = '/data/') => {
+  const siteSubDomain = () => {
     if (window.location.hostname === 'localhost') {
         return window.location.hostname + (window.location.port ? ':' + window.location.port : '');
     }
-
-    let host = window.location.host.split('.')
-    const ledgerId = host[0];
-    let apiUrl = host.slice(1)
-    apiUrl.unshift('api')
-
-    return apiUrl.join('.') + (window.location.port ? ':' + window.location.port : '') + path + ledgerId;
+    return window.location.host;
   }
 
   const post = (url, options = {}) => {
@@ -57,7 +51,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   }
 
   const fetchPublicToken = async () => {
-    const response = await fetch('//' + siteSubDomain('/api/ledger/') + '/public/token', { method: 'POST' });
+    const response = await fetch('//' + siteSubDomain() + '/.hub/v1/public/token', { method: 'POST' });
     const jsonResp = await response.json();
     const accessToken = jsonResp['access_token'];
     return accessToken;
@@ -98,6 +92,11 @@ async function ChatManager(party, token, updateUser, updateState) {
 
   const postPublic = (url, options = {}) => {
     Object.assign(options, { method: 'POST', headers: publicHeaders });
+    return fetch('//' + siteSubDomain() + url, options);
+  }
+
+  const getPublic = (url, options = {}) => {
+    Object.assign(options, { method: 'GET', headers: publicHeaders });
     return fetch('//' + siteSubDomain() + url, options);
   }
 
@@ -163,6 +162,9 @@ async function ChatManager(party, token, updateUser, updateState) {
           MESSAGE_TEMPLATE
         ] })
       });
+
+      const allPublishedArtifactsResponse = await getPublic('/.hub/v1/published')
+      console.log(allPublishedArtifactsResponse.json())
 
       const allContracts = await allContractsResponse.json();
       const allPublicContracts = await allPublicContractsResponse.json();

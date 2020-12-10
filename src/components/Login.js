@@ -7,6 +7,10 @@ const Login = props => {
   const showLoginWithDABL = window.location.hostname !== 'localhost';
 
   const getLoginUrl = () => {
+    // const domain = window.location.host
+    // const ledgerId = domain.split('.')[0];
+    // return domain + (window.location.port ? ':' + window.location.port : '')
+    //   + '/.hub/v1/auth/login?ledgerId=' + ledgerId + '&destinationDomain=https%3A%2F%2F' + domain;
     let host = window.location.host.split('.');
     const ledgerId = host[0];
     let loginUrl = host.slice(1)
