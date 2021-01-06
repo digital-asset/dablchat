@@ -12,7 +12,6 @@ operator_bot := target/dablchat-operator-bot-$(VERSION).tar.gz
 user_bot := target/dablchat-user-bot-$(VERSION).tar.gz
 ui := target/dablchat-ui-$(VERSION).zip
 
-
 .PHONY: all package publish
 
 all: package
@@ -43,9 +42,9 @@ $(user_bot):
 	mv python/user/dist/dablchat-user-bot-$(VERSION).tar.gz $@
 	rm -r python/user/dist
 
-$(ui):
+$(ui): $(user_bot) 
 	yarn install
-	yarn build
+	REACT_APP_ARCHIVE_BOT_HASH=$(shell sha256sum $(user_bot) | awk '{print $$1}') yarn build
 	zip -r dablchat-ui-$(VERSION).zip build
 	mkdir -p $(@D)
 	mv dablchat-ui-$(VERSION).zip $@

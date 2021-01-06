@@ -1,7 +1,7 @@
 daml 1.2
-module Test.ChatTest.V2 where
+module Test.ChatTest.V3 where
 
-import Chat.V2
+import Chat.V3
 
 
 createOperatorTest =

@@ -1,5 +1,4 @@
-daml 1.2
-module Chat.V2 where
+module Chat.V3 where
 
 import DA.List as L
 import DA.Next.Map as M
@@ -66,7 +65,7 @@ template UserInvitation
         do
           let contacts = M.fromList [(operator, "Operator")]
           create AddressBook with ..
-          create UserSettings with archiveMessagesAfter = 14, ..
+          create UserSettings with archiveMessagesAfter = 1209600, ..
           create Chat
             with creator = operator, members = [operator, user],
                     name = "Operator Bot",
@@ -126,6 +125,20 @@ template User
       nonconsuming User_RequestAliases : ContractId AliasesRequest
         do create AliasesRequest with ..
 
+      nonconsuming User_RequestArchiveBot : ContractId ArchiveBotRequest
+        with
+          botName : Text
+          enabled : Bool
+          message : Optional Text
+        do create ArchiveBotRequest with ..
+      
+      nonconsuming User_UpdateUserSettings: ContractId UserSettings
+        with
+          newArchiveMessagesAfter : Int
+        do
+          (sId, _) <- fetchByKey @UserSettings user
+          exercise sId UserSettingsUpdate with ..
+
       nonconsuming User_RequestArchiveMessages : ContractId ArchiveMessagesRequest
         do create ArchiveMessagesRequest with ..
 
@@ -141,6 +154,7 @@ template UserSettings
     archiveMessagesAfter : Int
   where
     signatory user
+    observer operator
 
     ensure archiveMessagesAfter >= 0
 
@@ -254,6 +268,18 @@ template AliasesRequest
   with
     operator : Party
     user : Party
+  where
+    signatory operator
+
+
+
+template ArchiveBotRequest
+  with
+    operator : Party
+    user : Party
+    botName: Text
+    enabled: Bool
+    message: Optional Text
   where
     signatory operator
 

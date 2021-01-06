@@ -10,15 +10,17 @@ dazl.setup_default_logger(logging.INFO)
 
 
 class Chat:
-    AliasesRequest = 'Chat.V2:AliasesRequest'
-    Chat = 'Chat.V2:Chat'
-    CreateChatRequest = 'Chat.V2:CreateChatRequest'
-    ForwardToSlack = 'Chat.V2:ForwardToSlack'
-    Message = 'Chat.V2:Message'
-    Operator = 'Chat.V2:Operator'
-    SelfAlias = 'Chat.V2:SelfAlias'
-    User = 'Chat.V2:User'
-    UserAccountRequest = 'Chat.V2:UserAccountRequest'
+    AliasesRequest = 'Chat.V3:AliasesRequest'
+    Chat = 'Chat.V3:Chat'
+    CreateChatRequest = 'Chat.V3:CreateChatRequest'
+    ForwardToSlack = 'Chat.V3:ForwardToSlack'
+    Message = 'Chat.V3:Message'
+    Operator = 'Chat.V3:Operator'
+    SelfAlias = 'Chat.V3:SelfAlias'
+    User = 'Chat.V3:User'
+    UserAccountRequest = 'Chat.V3:UserAccountRequest'
+    ArchiveBotRequest = 'Chat.V3:ArchiveBotRequest'
+    UserSettings = 'Chat.V3:UserSettings'
 
 
 class SlackIntegration:
@@ -69,7 +71,7 @@ def main():
             logging.info(f'found {len(request_cids_to_accept)} requests to accept '
                          f'and {len(request_cids_to_archive)} duplicated requests to archive')
 
-            commands_to_run =\
+            commands_to_run = \
                 [exercise(cid, 'UserAccountRequest_Accept') for cid in request_cids_to_accept] + \
                 [exercise(cid, 'UserAccountRequest_Reject') for cid in request_cids_to_archive]
 
@@ -126,6 +128,45 @@ def main():
                         {
                             'poster': client.party,
                             'message': known_users_message,
+                            'postedAt': f"{int(time.time())}"
+                        }
+                    )]
+        return client.submit(commands)
+
+    @client.ledger_created(Chat.UserSettings)
+    def user_setting_change(event):
+        logging.info(f'On {Chat.UserSettings}')
+        archive_after = event.cdata['archiveMessagesAfter']
+        message = f"archive retention has been changed to `{archive_after}s`"
+        client.submit(exercise_by_key(
+            Chat.Chat,
+            {'_1': client.party,
+             '_2': event.cdata['user']},
+            'Chat_PostMessage',
+            {
+                'poster': client.party,
+                'message': message,
+                'postedAt': f"{int(time.time())}"
+            }
+        ))
+
+    @client.ledger_created(Chat.ArchiveBotRequest)
+    def archive_bot_respond(event):
+        logging.info(f'On {Chat.ArchiveBotRequest}')
+        name = event.cdata['botName']
+        enabled = 'On' if event.cdata['enabled'] else 'Off'
+        message = f"`{name}` has been successfully turned {enabled}"
+        if event.cdata.get('message'):
+            message += f"\n{event.cdata['message']}"
+        commands = [exercise(event.cid, 'Archive', {}),
+                    exercise_by_key(
+                        Chat.Chat,
+                        {'_1': client.party,
+                         '_2': event.cdata['user']},
+                        'Chat_PostMessage',
+                        {
+                            'poster': client.party,
+                            'message': message,
                             'postedAt': f"{int(time.time())}"
                         }
                     )]

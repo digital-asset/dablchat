@@ -9,6 +9,22 @@ function parseJwt(token) {
   return JSON.parse(jsonPayload);
 };
 
+function parseTime(time) {
+  const duration = time.slice(0, -1)
+  switch (time.substr(time.length - 1).toLowerCase()) {
+    case 's':
+      return duration;
+    case 'm':
+      return duration * 60;
+    case 'h':
+      return duration * 60 * 60;
+    case 'd':
+      return duration * 60 * 60 * 24;
+    default:
+      return -1;
+  }
+}
+
 function parseUserName(token) {
   const sub = parseJwt(token)['sub']
   const startChar = sub.indexOf('|');
@@ -24,13 +40,13 @@ function sleep(ms) {
 
 async function ChatManager(party, token, updateUser, updateState) {
 
-  const ADDRESS_BOOK_TEMPLATE = 'Chat.V2:AddressBook'
-  const CHAT_TEMPLATE = 'Chat.V2:Chat'
-  const MESSAGE_TEMPLATE = 'Chat.V2:Message'
-  const SELF_ALIAS_TEMPLATE = 'Chat.V2:SelfAlias'
-  const USER_TEMPLATE = 'Chat.V2:User'
-  const USER_INVITATION_TEMPLATE = 'Chat.V2:UserInvitation'
-  const USER_ACCOUNT_REQUEST_TEMPLATE = 'Chat.V2:UserAccountRequest'
+  const ADDRESS_BOOK_TEMPLATE = 'Chat.V3:AddressBook'
+  const CHAT_TEMPLATE = 'Chat.V3:Chat'
+  const MESSAGE_TEMPLATE = 'Chat.V3:Message'
+  const SELF_ALIAS_TEMPLATE = 'Chat.V3:SelfAlias'
+  const USER_TEMPLATE = 'Chat.V3:User'
+  const USER_INVITATION_TEMPLATE = 'Chat.V3:UserInvitation'
+  const USER_ACCOUNT_REQUEST_TEMPLATE = 'Chat.V3:UserAccountRequest'
 
   const headers = {
     "Authorization": `Bearer ${token.toString()}`,
@@ -163,9 +179,6 @@ async function ChatManager(party, token, updateUser, updateState) {
         ] })
       });
 
-      const allPublishedArtifactsResponse = await getPublic('/.hub/v1/published')
-      console.log(allPublishedArtifactsResponse.json())
-
       const allContracts = await allContractsResponse.json();
       const allPublicContracts = await allPublicContractsResponse.json();
 
@@ -217,6 +230,55 @@ async function ChatManager(party, token, updateUser, updateState) {
       console.error("Could not fetch contracts!", e)
     }
   }
+
+  const getPublicAutomation = async () => {
+    return getPublic('/.hub/v1/published')
+  }
+
+  const deployArchiveBot = async (owner, artifactHash) => {
+    await post('/.hub/v1/published/deploy', {
+      body: JSON.stringify({
+        artifactHash: artifactHash,
+        owner: owner
+      })
+    })
+  }
+
+  const undeployArchiveBot = async (artifactHash) => {
+    await post('/.hub/v1/published/undeploy/' + artifactHash)
+  }
+
+  const archiveBotRequest = async (user, botName, enabled, message) => {
+    await post('/v1/exercise', {
+      body: JSON.stringify({
+        templateId: USER_TEMPLATE,
+        contractId: user.contractId,
+        choice: 'User_RequestArchiveBot',
+        argument: {
+          botName: botName,
+          enabled: enabled,
+          message: message
+        }
+      })
+    })
+  }
+
+  const updateUserSettings = async (user, time) => {
+    const seconds = parseTime(time)
+    if (seconds > 0) {
+      await post('/v1/exercise', {
+        body: JSON.stringify({
+          templateId: USER_TEMPLATE,
+          contractId: user.contractId,
+          choice: 'User_UpdateUserSettings',
+          argument: {
+            newArchiveMessagesAfter: seconds,
+          }
+        })
+      })
+    }
+  }
+
 
   const acceptInvitation = async (userInvitation) => {
     await post('/v1/exercise', {
@@ -406,7 +468,12 @@ async function ChatManager(party, token, updateUser, updateState) {
     requestUserList,
     renameChat,
     archiveChat,
-    forwardToSlack
+    forwardToSlack,
+    getPublicAutomation,
+    deployArchiveBot,
+    archiveBotRequest,
+    undeployArchiveBot,
+    updateUserSettings
   }
 }
 
