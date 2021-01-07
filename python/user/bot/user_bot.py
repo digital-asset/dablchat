@@ -68,7 +68,7 @@ def main():
         # initial scan
         while len(message_heap) > 0:
             top = message_heap[0]
-            if not expired(archive_state.archive_after , top.post_at):
+            if not expired(archive_state.archive_after, top.post_at):
                 logging.info("Auto-archiving caught up.")
                 break
             logging.info(f"Auto-archiving {top.cid} posted at {top.post_at}")
@@ -82,7 +82,7 @@ def main():
                                                         message_heap[0].post_at):
                     top = message_heap[0]
                     logging.info(f'archiving {Chat.Message}:{top.cid}'
-                                 f' staled for {archive_state.archive_after}s')
+                                 f' expired after {archive_state.archive_after}s')
                     await client.submit(exercise(top.cid, 'Archive'))
                     heapq.heappop(message_heap)
                     logging.info(f'{Chat.Message}:{top.cid} archived.')
