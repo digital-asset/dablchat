@@ -61,7 +61,7 @@ def main():
     @client.ledger_ready()
     async def bot_ready(_):
         existing_messages = client.find_active(Chat.Message, {'sender': client.party})
-        archive_state.message_heap = [Message(int(cdata['postedAt']), cid)
+        archive_state.message_heap = [Message(cdata['postedAt'], cid)
                                       for cid, cdata in existing_messages.items()]
 
         message_heap = archive_state.message_heap
@@ -102,7 +102,7 @@ def main():
             (_, settings_cdata) = await client.find_one(Chat.UserSettings, {'user': client.party})
             user_messages = client.find_active(Chat.Message, {'sender': client.party})
             commands = [exercise(cid, 'Archive') for (cid, cdata) in user_messages.items() if
-                        expired(settings_cdata['archiveMessagesAfter'], int(cdata['postedAt']))]
+                        expired(settings_cdata['archiveMessagesAfter'], cdata['postedAt'])]
             logging.info(f"Will archive {len(commands)} message(s)")
             commands.append(exercise(event.cid, 'Archive'))
             await batch_submit(commands, 50)
@@ -117,7 +117,7 @@ def main():
         if event.cdata['sender'] == client.party:
             logging.info(f'New {Chat.Message} archive candidate added.')
             heapq.heappush(message_heap,
-                           Message(int(event.cdata['postedAt']), event.cid))
+                           Message(event.cdata['postedAt'], event.cid))
 
     @client.ledger_created(Chat.UserSettings)
     async def archive_bot(event):

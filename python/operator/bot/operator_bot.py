@@ -48,7 +48,7 @@ def main():
                 {
                     'poster': client.party,
                     'message': message,
-                    'postedAt': f"{int(time.time())}"
+                    'postedAt': int(time.time())
                 }
             )
 

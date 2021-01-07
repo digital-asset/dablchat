@@ -306,7 +306,7 @@ async function ChatManager(party, token, updateUser, updateState) {
         argument: {
           poster: user.user,
           message: message,
-          postedAt: seconds.toString()
+          postedAt: seconds
         }
       })
     })

@@ -201,7 +201,7 @@ template AddressBook
 template Message
   with
     sender : Party
-    postedAt : Text
+    postedAt : Int
     message : Text
     recipients : [Party]
     chatId : Text
@@ -339,7 +339,7 @@ template Chat
       with
         poster : Party
         message : Text
-        postedAt : Text
+        postedAt : Int
       controller poster
       do
         assert $ poster `elem` members
