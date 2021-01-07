@@ -155,7 +155,7 @@ def main():
         logging.info(f'On {Chat.ArchiveBotRequest}')
         name = event.cdata['botName']
         enabled = 'On' if event.cdata['enabled'] else 'Off'
-        message = f"`{name}` has been successfully turned {enabled}"
+        message = f"Turning `{name}` {enabled}"
         if event.cdata.get('message'):
             message += f"\n{event.cdata['message']}"
         commands = [exercise(event.cid, 'Archive', {}),
