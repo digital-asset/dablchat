@@ -7,7 +7,7 @@ import math
 from dazl import exercise, ContractId
 import heapq
 from dataclasses import dataclass
-
+import traceback
 dazl.setup_default_logger(logging.INFO)
 
 EPOCH = datetime.datetime.utcfromtimestamp(0)
@@ -52,6 +52,12 @@ def main():
         return (datetime.datetime.fromtimestamp(posted_at) + datetime.timedelta(
             seconds=after)) < datetime.datetime.now()
 
+    async def batch_submit(commands, size):
+        batched_commands = [commands[i * size:(i + 1) * size]
+                             for i in range((len(commands) + size - 1) // size)]
+        for cmds in batched_commands:
+            await client.submit(cmds)
+
     @client.ledger_ready()
     async def bot_ready(_):
         existing_messages = client.find_active(Chat.Message, {'sender': client.party})
@@ -64,18 +70,8 @@ def main():
 
         (_, settings_cdata) = await client.find_one(Chat.UserSettings, {'user': client.party})
         archive_state.archive_after = (settings_cdata['archiveMessagesAfter'])
-
-        # initial scan
-        while len(message_heap) > 0:
-            top = message_heap[0]
-            if not expired(archive_state.archive_after, top.post_at):
-                logging.info("Auto-archiving caught up.")
-                break
-            logging.info(f"Auto-archiving {top.cid} posted at {top.post_at}")
-            await client.submit(exercise(top.cid, 'Archive'))
-            heapq.heappop(message_heap)
-
         logging.info(f'started auto-archiving bot for party {party}')
+
         while True:
             try:
                 while len(message_heap) > 0 and expired(archive_state.archive_after,
@@ -83,11 +79,18 @@ def main():
                     top = message_heap[0]
                     logging.info(f'archiving {Chat.Message}:{top.cid}'
                                  f' expired after {archive_state.archive_after}s')
+
+                    message_to_archive = client.find_by_id(top.cid)
+                    if not message_to_archive :#or not message_to_archive.active:
+                        logging.info(f'Message: {top.cid} archived somewhere else, skip.')
+                        heapq.heappop(message_heap)
+                        continue
+
                     await client.submit(exercise(top.cid, 'Archive'))
                     heapq.heappop(message_heap)
                     logging.info(f'{Chat.Message}:{top.cid} archived.')
             except:
-                logging.error(f"Could not auto archive messages")
+                logging.error(f"Could not auto archive messages: {traceback.print_exc()}")
             if len(message_heap) > 0:
                 logging.info(f'waiting for next message to archive: {message_heap[0].cid}')
             await asyncio.sleep(bot_polling_sec)
@@ -102,7 +105,7 @@ def main():
                         expired(settings_cdata['archiveMessagesAfter'], int(cdata['postedAt']))]
             logging.info(f"Will archive {len(commands)} message(s)")
             commands.append(exercise(event.cid, 'Archive'))
-            await client.submit(commands)
+            await batch_submit(commands, 50)
         except:
             logging.error(f"Could not archive stale messages")
             await client.submit_exercise(event.cid, 'Archive')
