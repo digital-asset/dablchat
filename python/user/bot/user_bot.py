@@ -4,8 +4,7 @@ import os
 import asyncio
 import dazl
 import math
-from dazl import exercise, AIOPartyClient, ContractData, \
-    ContractId
+from dazl import exercise, ContractId
 import heapq
 from dataclasses import dataclass
 
@@ -32,7 +31,7 @@ class Message:
 # default to 14 days as defined in DAML
 archive_after = 1209600
 message_heap: '[Message]' = []
-
+bot_polling_sec = 2
 
 def main():
     url = os.getenv('DAML_LEDGER_URL')
@@ -66,24 +65,27 @@ def main():
         while len(message_heap) > 0:
             top = message_heap[0]
             if not expired(archive_after, top.post_at):
+                logging.info("Auto-archiving caught up.")
                 break
-            commands = [exercise(msg.cid, 'Archive') for msg in message_heap
-                        if expired(archive_after, top.post_at)]
-            logging.info(f"Archiving {len(commands)} old messages")
+            logging.info(f"Auto-archiving {top.cid} posted at {top.post_at}")
+            await client.submit(exercise(top.cid, 'Archive'))
             heapq.heappop(message_heap)
-            await client.submit(commands)
 
         logging.info(f'started auto-archiving bot for party {party}')
         while True:
-            while len(message_heap) > 0:
-                top = message_heap[0]
-                if expired(archive_after, top.post_at):
-                    logging.info(f'archiving {Chat.Message}:{top.cid} staled for {archive_after}s')
-                    await client.submit(exercise(top.cid, 'Archive'))
-                    heapq.heappop(message_heap)
-                    logging.info(f'{Chat.Message}:{top.cid} archived.')
-                await asyncio.sleep(math.sqrt(archive_after))
-            await asyncio.sleep(2)
+            try:
+                while len(message_heap) > 0:
+                    top = message_heap[0]
+                    if expired(archive_after, top.post_at):
+                        logging.info(f'archiving {Chat.Message}:{top.cid} staled for {archive_after}s')
+                        await client.submit(exercise(top.cid, 'Archive'))
+                        heapq.heappop(message_heap)
+                        logging.info(f'{Chat.Message}:{top.cid} archived.')
+                    logging.info(f'waiting for next message to archive: {top.cid}')
+                    await asyncio.sleep(bot_polling_sec)
+            except:
+                logging.error(f"Could not auto archive messages")
+            await asyncio.sleep(bot_polling_sec)
 
     @client.ledger_created(Chat.ArchiveMessagesRequest)
     async def archive_stale_messages(event):

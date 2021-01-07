@@ -82,8 +82,8 @@ const commands = [
     description: "Forward messages of a public chat to a slack channel. (Requires a running Slack Send Message integration and you must be the creator of the chat)"
   },
   {
-    command: "/bot [on/off] | [seconds]",
-    description: "Turning auto-archiving bot on or off. set retention period by pass in seconds instead."
+    command: "/bot [on/off] | [5s|m|h|d]",
+    description: "Turning auto-archiving bot on or off or set retention period."
   }
 ]
 
@@ -595,7 +595,7 @@ class App extends Component {
                     </tr>
                     <tr>
                         <td>Start/Stop an archiving bot to automatically archive your staled messages</td>
-                        <td><code>/bot [on/off] | [seconds]</code></td>
+                        <td><code>/bot [on/off] | [5s/m/h/d]</code></td>
                     </tr>
                     <tr>
                         <th>If you create a chat, you can:</th>
