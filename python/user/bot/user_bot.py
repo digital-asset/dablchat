@@ -74,15 +74,13 @@ def main():
         logging.info(f'started auto-archiving bot for party {party}')
         while True:
             try:
-                while len(message_heap) > 0:
+                while len(message_heap) > 0 and expired(archive_after, message_heap[0].post_at):
                     top = message_heap[0]
-                    if expired(archive_after, top.post_at):
-                        logging.info(f'archiving {Chat.Message}:{top.cid} staled for {archive_after}s')
-                        await client.submit(exercise(top.cid, 'Archive'))
-                        heapq.heappop(message_heap)
-                        logging.info(f'{Chat.Message}:{top.cid} archived.')
+                    logging.info(f'archiving {Chat.Message}:{top.cid} staled for {archive_after}s')
+                    await client.submit(exercise(top.cid, 'Archive'))
+                    heapq.heappop(message_heap)
+                    logging.info(f'{Chat.Message}:{top.cid} archived.')
                     logging.info(f'waiting for next message to archive: {top.cid}')
-                    await asyncio.sleep(bot_polling_sec)
             except:
                 logging.error(f"Could not auto archive messages")
             await asyncio.sleep(bot_polling_sec)
