@@ -80,9 +80,10 @@ def main():
                     await client.submit(exercise(top.cid, 'Archive'))
                     heapq.heappop(message_heap)
                     logging.info(f'{Chat.Message}:{top.cid} archived.')
-                    logging.info(f'waiting for next message to archive: {top.cid}')
             except:
                 logging.error(f"Could not auto archive messages")
+            if len(message_heap) > 0:
+                logging.info(f'waiting for next message to archive: {message_heap[0].cid}')
             await asyncio.sleep(bot_polling_sec)
 
     @client.ledger_created(Chat.ArchiveMessagesRequest)

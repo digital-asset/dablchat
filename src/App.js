@@ -463,7 +463,7 @@ class App extends Component {
         if (allBots.length === 0) {
           this.chatManager.archiveBotRequest(chatUser,
             publicBot.name,
-              true, publicBot.name + " is not available.")
+              true, `\`${publicBot.name}\` is not available.`)
           break;
         }
         const theBot = allBots[0]
