@@ -81,7 +81,7 @@ def main():
                                  f' expired after {archive_state.archive_after}s')
 
                     message_to_archive = client.find_by_id(top.cid)
-                    if not message_to_archive :#or not message_to_archive.active:
+                    if not message_to_archive or not message_to_archive.active:
                         logging.info(f'Message: {top.cid} archived somewhere else, skip.')
                         heapq.heappop(message_heap)
                         continue

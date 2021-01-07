@@ -39,6 +39,19 @@ def main():
     logging.info(f'public party is {public_party}')
     client = network.aio_party(party)
 
+    def post_message_command(user, message):
+        return exercise_by_key(
+                Chat.Chat,
+                {'_1': client.party,
+                 '_2': user},
+                'Chat_PostMessage',
+                {
+                    'poster': client.party,
+                    'message': message,
+                    'postedAt': f"{int(time.time())}"
+                }
+            )
+
     @client.ledger_ready()
     def create_operator(_):
         logging.info(f'On Ledger Ready')
@@ -120,56 +133,26 @@ def main():
             known_users_message = "I couldn't find any known users!"
 
         commands = [exercise(event.cid, 'Archive', {}),
-                    exercise_by_key(
-                        Chat.Chat,
-                        {'_1': client.party,
-                         '_2': event.cdata['user']},
-                        'Chat_PostMessage',
-                        {
-                            'poster': client.party,
-                            'message': known_users_message,
-                            'postedAt': f"{int(time.time())}"
-                        }
-                    )]
+                    post_message_command(event.cdata['user'], known_users_message)]
         return client.submit(commands)
 
     @client.ledger_created(Chat.UserSettings)
     def user_setting_change(event):
         logging.info(f'On {Chat.UserSettings}')
         archive_after = event.cdata['archiveMessagesAfter']
-        message = f"archive retention has been changed to `{archive_after}s`"
-        return client.submit(exercise_by_key(
-            Chat.Chat,
-            {'_1': client.party,
-             '_2': event.cdata['user']},
-            'Chat_PostMessage',
-            {
-                'poster': client.party,
-                'message': message,
-                'postedAt': f"{int(time.time())}"
-            }
-        ))
+        message = f"archive retention has been set to `{archive_after}s`"
+        return client.submit(post_message_command(event.cdata['user'], message))
 
     @client.ledger_created(Chat.ArchiveBotRequest)
     def archive_bot_respond(event):
         logging.info(f'On {Chat.ArchiveBotRequest}')
         name = event.cdata['botName']
         enabled = 'On' if event.cdata['enabled'] else 'Off'
-        message = f"Turning `{name}` {enabled}"
+        message = f"`{name}` is {enabled}"
         if event.cdata.get('message'):
             message += f"\n{event.cdata['message']}"
         commands = [exercise(event.cid, 'Archive', {}),
-                    exercise_by_key(
-                        Chat.Chat,
-                        {'_1': client.party,
-                         '_2': event.cdata['user']},
-                        'Chat_PostMessage',
-                        {
-                            'poster': client.party,
-                            'message': message,
-                            'postedAt': f"{int(time.time())}"
-                        }
-                    )]
+                    post_message_command(event.cdata['user'], message)]
         return client.submit(commands)
 
     @client.ledger_created(Chat.User)
