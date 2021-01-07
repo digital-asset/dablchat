@@ -11,6 +11,7 @@ from dataclasses import dataclass
 dazl.setup_default_logger(logging.INFO)
 
 EPOCH = datetime.datetime.utcfromtimestamp(0)
+bot_polling_sec = 2
 
 
 class Chat:
@@ -28,10 +29,11 @@ class Message:
         return self.post_at < other.post_at
 
 
-# default to 14 days as defined in DAML
-archive_after = 1209600
-message_heap: '[Message]' = []
-bot_polling_sec = 2
+@dataclass
+class ArchiveState:
+    message_heap: '[Message]'
+    archive_after: 'int'
+
 
 def main():
     url = os.getenv('DAML_LEDGER_URL')
@@ -43,28 +45,30 @@ def main():
     logging.info(f'starting a the user_bot for party {party}')
     client = network.aio_party(party)
 
+    # default to 14 days as defined in DAML
+    archive_state = ArchiveState(message_heap=[], archive_after=1209600)
+
     def expired(after: int, posted_at: int) -> bool:
         return (datetime.datetime.fromtimestamp(posted_at) + datetime.timedelta(
             seconds=after)) < datetime.datetime.now()
 
     @client.ledger_ready()
     async def bot_ready(_):
-        global message_heap
-        global archive_after
-
         existing_messages = client.find_active(Chat.Message, {'sender': client.party})
-        message_heap = [Message(int(cdata['postedAt']), cid)
-                        for cid, cdata in existing_messages.items()]
+        archive_state.message_heap = [Message(int(cdata['postedAt']), cid)
+                                      for cid, cdata in existing_messages.items()]
+
+        message_heap = archive_state.message_heap
         heapq.heapify(message_heap)
         logging.info(f"Message cache loaded.")
 
         (_, settings_cdata) = await client.find_one(Chat.UserSettings, {'user': client.party})
-        archive_after = (settings_cdata['archiveMessagesAfter'])
+        archive_state.archive_after = (settings_cdata['archiveMessagesAfter'])
 
         # initial scan
         while len(message_heap) > 0:
             top = message_heap[0]
-            if not expired(archive_after, top.post_at):
+            if not expired(archive_state.archive_after , top.post_at):
                 logging.info("Auto-archiving caught up.")
                 break
             logging.info(f"Auto-archiving {top.cid} posted at {top.post_at}")
@@ -74,9 +78,11 @@ def main():
         logging.info(f'started auto-archiving bot for party {party}')
         while True:
             try:
-                while len(message_heap) > 0 and expired(archive_after, message_heap[0].post_at):
+                while len(message_heap) > 0 and expired(archive_state.archive_after,
+                                                        message_heap[0].post_at):
                     top = message_heap[0]
-                    logging.info(f'archiving {Chat.Message}:{top.cid} staled for {archive_after}s')
+                    logging.info(f'archiving {Chat.Message}:{top.cid}'
+                                 f' staled for {archive_state.archive_after}s')
                     await client.submit(exercise(top.cid, 'Archive'))
                     heapq.heappop(message_heap)
                     logging.info(f'{Chat.Message}:{top.cid} archived.')
@@ -103,7 +109,7 @@ def main():
 
     @client.ledger_created(Chat.Message)
     async def message_heapify(event):
-        global message_heap
+        message_heap = archive_state.message_heap
         logging.info(f'On {Chat.Message} created')
         if event.cdata['sender'] == client.party:
             logging.info(f'New {Chat.Message} archive candidate added.')
@@ -112,9 +118,8 @@ def main():
 
     @client.ledger_created(Chat.UserSettings)
     async def archive_bot(event):
-        global archive_after
-        archive_after = event.cdata['archiveMessagesAfter']
-        logging.info(f"New auto archiving setting: {archive_after}s")
+        archive_state.archive_after = event.cdata['archiveMessagesAfter']
+        logging.info(f"New auto archiving setting: {archive_state.archive_after}s")
 
     network.run_forever()
 

@@ -138,7 +138,7 @@ def main():
         logging.info(f'On {Chat.UserSettings}')
         archive_after = event.cdata['archiveMessagesAfter']
         message = f"archive retention has been changed to `{archive_after}s`"
-        client.submit(exercise_by_key(
+        return client.submit(exercise_by_key(
             Chat.Chat,
             {'_1': client.party,
              '_2': event.cdata['user']},
