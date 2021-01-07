@@ -65,6 +65,7 @@ template UserInvitation
         do
           let contacts = M.fromList [(operator, "Operator")]
           create AddressBook with ..
+          -- default archive retention period: 14 days in second
           create UserSettings with archiveMessagesAfter = 1209600, ..
           create Chat
             with creator = operator, members = [operator, user],

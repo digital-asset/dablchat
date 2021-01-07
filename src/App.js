@@ -594,7 +594,7 @@ class App extends Component {
                         <td><code>/users</code></td>
                     </tr>
                     <tr>
-                        <td>Start/Stop an archiving bot to automatically archive your staled messages</td>
+                        <td>Start/Stop an archiving bot to automatically archive your expired messages</td>
                         <td><code>/bot [on/off] | [5s/m/h/d]</code></td>
                     </tr>
                     <tr>
