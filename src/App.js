@@ -470,7 +470,7 @@ class App extends Component {
         const action = words[0].toLowerCase()
         const allBots = await this.chatManager.getPublicAutomation().then(async res => {
           const bots = await res.json()
-          return bots.filter(en => en.artifactHash === "8e1bc3e0bcef2a6e20830b0a3e5224086f7bdda2c9d54f333953accc21d6df5a") // publicBot.hash
+          return bots.filter(en => en.artifactHash === publicBot.hash)
         }
         )
 
@@ -478,6 +478,7 @@ class App extends Component {
           this.chatManager.archiveBotRequest(chatUser,
             publicBot.name,
               false, `\`${publicBot.name}\` is not available.`)
+          console.log(`public artifact: ${publicBot.hash} not found`)
           break;
         }
         const theBot = allBots[0]
