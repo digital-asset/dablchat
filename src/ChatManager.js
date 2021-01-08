@@ -9,24 +9,6 @@ function parseJwt(token) {
   return JSON.parse(jsonPayload);
 };
 
-function parseTime(time) {
-  const duration = time.slice(0, -1)
-  if (isNaN(duration))
-    return -1;
-  switch (time.substr(time.length - 1).toLowerCase()) {
-    case 's':
-      return duration;
-    case 'm':
-      return duration * 60;
-    case 'h':
-      return duration * 60 * 60;
-    case 'd':
-      return duration * 60 * 60 * 24;
-    default:
-      return -1;
-  }
-}
-
 function parseUserName(token) {
   const sub = parseJwt(token)['sub']
   const startChar = sub.indexOf('|');
@@ -265,22 +247,17 @@ async function ChatManager(party, token, updateUser, updateState) {
     })
   }
 
-  const updateUserSettings = async (user, time) => {
-    const seconds = parseTime(time)
-    if (seconds <= 0) {
-      alert("please provide valid /bot commands")
-    } else {
-      await post('/v1/exercise', {
-        body: JSON.stringify({
-          templateId: USER_TEMPLATE,
-          contractId: user.contractId,
-          choice: 'User_UpdateUserSettings',
-          argument: {
-            newArchiveMessagesAfter: seconds,
-          }
-        })
+  const updateUserSettings = async (user, timedelta) => {
+    await post('/v1/exercise', {
+      body: JSON.stringify({
+        templateId: USER_TEMPLATE,
+        contractId: user.contractId,
+        choice: 'User_UpdateUserSettings',
+        argument: {
+          newArchiveMessagesAfter: timedelta,
+        }
       })
-    }
+    })
   }
 
 

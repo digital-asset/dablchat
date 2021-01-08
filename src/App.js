@@ -131,6 +131,17 @@ const EmojiAutoCompleteItem = ({ entity }) => {
   )
 }
 
+function isValidBotCmd(words) {
+  if (words.length !== 1)
+    return false;
+  const action = words[0]
+  if (['on', 'off'].includes(action.toLowerCase()))
+    return true;
+  const duration = action.slice(0, -1)
+  const unit = action.substr(action.length - 1).toLowerCase()
+  return !isNaN(duration) && ['s', 'm', 'h', 'd'].includes(unit);
+}
+
 async function makeChatName() {
   const adjective = "adjective"
   const noun = "noun"
@@ -452,11 +463,14 @@ class App extends Component {
           .then(() => this.scrollToLatestMessages())
           break;
       case 'bot':
-        if (words.length !== 1) break;
+        if (!isValidBotCmd(words)) {
+          alert("invalid bot command. required e.g. /bot [on/off] | [5s|m|h|d]")
+          break;
+        }
         const action = words[0].toLowerCase()
         const allBots = await this.chatManager.getPublicAutomation().then(async res => {
           const bots = await res.json()
-          return bots.filter(en => en.artifactHash === publicBot.hash)
+          return bots.filter(en => en.artifactHash === "8e1bc3e0bcef2a6e20830b0a3e5224086f7bdda2c9d54f333953accc21d6df5a") // publicBot.hash
         }
         )
 
@@ -481,7 +495,9 @@ class App extends Component {
               })
             break;
           default:
-            this.chatManager.updateUserSettings(chatUser, action)
+            const duration = action.slice(0, -1)
+            const unit = action.substr(action.length - 1).toLowerCase()
+            this.chatManager.updateUserSettings(chatUser, {"time": duration, "unit": unit})
             break;
         }
         break;

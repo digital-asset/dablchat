@@ -66,7 +66,7 @@ template UserInvitation
           let contacts = M.fromList [(operator, "Operator")]
           create AddressBook with ..
           -- default archive retention period: 14 days in second
-          create UserSettings with archiveMessagesAfter = 1209600, ..
+          create UserSettings with archiveMessagesAfter = Duration{time=14, unit = "d"}, ..
           create Chat
             with creator = operator, members = [operator, user],
                     name = "Operator Bot",
@@ -135,7 +135,7 @@ template User
       
       nonconsuming User_UpdateUserSettings: ContractId UserSettings
         with
-          newArchiveMessagesAfter : Int
+          newArchiveMessagesAfter : Duration
         do
           (sId, _) <- fetchByKey @UserSettings user
           exercise sId UserSettingsUpdate with ..
@@ -152,12 +152,12 @@ template UserSettings
   with
     operator : Party
     user : Party
-    archiveMessagesAfter : Int
+    archiveMessagesAfter : Duration
   where
     signatory user
     observer operator
 
-    ensure archiveMessagesAfter >= 0
+    ensure archiveMessagesAfter.time >= 0 && archiveMessagesAfter.unit `elem` ["s", "m", "h", "d"]
 
     key user : Party
     maintainer key
@@ -165,7 +165,7 @@ template UserSettings
     controller user can
       UserSettingsUpdate : ContractId UserSettings
         with
-          newArchiveMessagesAfter : Int
+          newArchiveMessagesAfter : Duration
         do
           create this with archiveMessagesAfter = newArchiveMessagesAfter
 
@@ -398,3 +398,10 @@ template Chat
               cid <- create ForwardToSlack with user = creator, ..
               return $ Some cid
             _ -> return None
+
+data Duration = Duration
+  with
+    time: Int
+    unit: Text
+  deriving (Eq, Show)
+

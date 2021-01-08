@@ -1,16 +1,16 @@
-import datetime
 import logging
 import os
 import asyncio
 import dazl
-import math
 from dazl import exercise, ContractId
 import heapq
 from dataclasses import dataclass
+from datetime import timedelta, datetime
 import traceback
+
 dazl.setup_default_logger(logging.INFO)
 
-EPOCH = datetime.datetime.utcfromtimestamp(0)
+EPOCH = datetime.utcfromtimestamp(0)
 bot_polling_sec = 2
 
 
@@ -46,15 +46,21 @@ def main():
     client = network.aio_party(party)
 
     # default to 14 days as defined in DAML
-    archive_state = ArchiveState(message_heap=[], archive_after=1209600)
+    archive_state = ArchiveState(message_heap=[],
+                                 archive_after=int(timedelta(days=14).total_seconds()))
+
+    def to_sec(time, unit) -> int:
+        switch = {'s': 'seconds', 'm': 'minutes', 'h': 'hours', 'd': 'days'}
+        period = switch[unit]
+        return int(timedelta(**{period: time}).total_seconds())
 
     def expired(after: int, posted_at: int) -> bool:
-        return (datetime.datetime.fromtimestamp(posted_at) + datetime.timedelta(
-            seconds=after)) < datetime.datetime.now()
+        return (datetime.fromtimestamp(posted_at) + timedelta(
+            seconds=after)) < datetime.now()
 
     async def batch_submit(commands, size):
         batched_commands = [commands[i * size:(i + 1) * size]
-                             for i in range((len(commands) + size - 1) // size)]
+                            for i in range((len(commands) + size - 1) // size)]
         for cmds in batched_commands:
             await client.submit(cmds)
 
@@ -69,7 +75,7 @@ def main():
         logging.info(f"Message cache loaded.")
 
         (_, settings_cdata) = await client.find_one(Chat.UserSettings, {'user': client.party})
-        archive_state.archive_after = (settings_cdata['archiveMessagesAfter'])
+        archive_state.archive_after = to_sec(**settings_cdata['archiveMessagesAfter'])
         logging.info(f'started auto-archiving bot for party {party}')
 
         while True:
@@ -121,8 +127,8 @@ def main():
 
     @client.ledger_created(Chat.UserSettings)
     async def archive_bot(event):
-        archive_state.archive_after = event.cdata['archiveMessagesAfter']
-        logging.info(f"New auto archiving setting: {archive_state.archive_after}s")
+        archive_state.archive_after = to_sec(**event.cdata['archiveMessagesAfter'])
+        logging.info(f"New auto archiving setting: {event.cdata['archiveMessagesAfter']}s")
 
     network.run_forever()
 

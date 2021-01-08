@@ -140,7 +140,7 @@ def main():
     def user_setting_change(event):
         logging.info(f'On {Chat.UserSettings}')
         archive_after = event.cdata['archiveMessagesAfter']
-        message = f"archive retention has been set to `{archive_after}s`"
+        message = f"archive retention has been set to `{archive_after['time']}{archive_after['unit']}`"
         return client.submit(post_message_command(event.cdata['user'], message))
 
     @client.ledger_created(Chat.ArchiveBotRequest)
