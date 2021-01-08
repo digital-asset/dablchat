@@ -34,6 +34,8 @@ const CommandAutoCompleteItem = ({ entity }) => {
   )
 };
 
+const publicBot = {name: "AutoArchivingBot", hash: process.env.REACT_APP_ARCHIVE_BOT_HASH}
+
 const commands = [
   {
     command: "/add @user... [#chat-id]",
@@ -79,6 +81,10 @@ const commands = [
     command: "/slack [#chat-id] [slackChannelId]",
     description: "Forward messages of a public chat to a slack channel. (Requires a running Slack Send Message integration and you must be the creator of the chat)"
   },
+  {
+    command: "/bot [on/off] | [5s|m|h|d]",
+    description: "Turning auto-archiving bot on or off or set retention period."
+  }
 ]
 
 const GIPHY_TOKEN = 'kDqbzOZtPvy38TLdqonPnpTPrsLfW8uy'
@@ -125,6 +131,17 @@ const EmojiAutoCompleteItem = ({ entity }) => {
   )
 }
 
+function isValidBotCmd(words) {
+  if (words.length !== 1)
+    return false;
+  const action = words[0]
+  if (['on', 'off'].includes(action.toLowerCase()))
+    return true;
+  const duration = action.slice(0, -1)
+  const unit = action.substr(action.length - 1).toLowerCase()
+  return !isNaN(duration) && ['s', 'm', 'h', 'd'].includes(unit);
+}
+
 async function makeChatName() {
   const adjective = "adjective"
   const noun = "noun"
@@ -151,6 +168,7 @@ async function makeChatName() {
 
     return chatName
 }
+
 
 const INITIAL_STATE = {
   partyId: '',
@@ -444,11 +462,51 @@ class App extends Component {
           .then(() => this.chatManager.fetchUpdate())
           .then(() => this.scrollToLatestMessages())
           break;
+      case 'bot':
+        if (!isValidBotCmd(words)) {
+          alert("invalid bot command. required e.g. /bot [on/off] | [5s|m|h|d]")
+          break;
+        }
+        const action = words[0].toLowerCase()
+        const allBots = await this.chatManager.getPublicAutomation().then(async res => {
+          const bots = await res.json()
+          return bots.filter(en => en.artifactHash === publicBot.hash)
+        }
+        )
+
+        if (allBots.length === 0) {
+          this.chatManager.archiveBotRequest(chatUser,
+            publicBot.name,
+              false, `\`${publicBot.name}\` is not available.`)
+          console.log(`public artifact: ${publicBot.hash} not found`)
+          break;
+        }
+        const theBot = allBots[0]
+        switch (action) {
+          case 'on':
+            this.chatManager.deployArchiveBot(theBot.owner, theBot.artifactHash)
+              .then(() => {
+                this.chatManager.archiveBotRequest(chatUser, publicBot.name, true, null)
+              })
+            break;
+          case 'off':
+            this.chatManager.undeployArchiveBot(theBot.artifactHash)
+              .then(() => {
+                this.chatManager.archiveBotRequest(chatUser, publicBot.name, false, null)
+              })
+            break;
+          default:
+            const duration = action.slice(0, -1)
+            const unit = action.substr(action.length - 1).toLowerCase()
+            this.chatManager.updateUserSettings(chatUser, {"time": duration, "unit": unit})
+            break;
+        }
+        break;
       default:
         if (!currentChat) return alert("Only commands work on this page, you must be in a chat to send a message")
         this.chatManager.sendMessage(chatUser, currentChat, newMessage)
-        .then(() => this.chatManager.fetchUpdate())
-        .then(() => this.scrollToLatestMessages())
+          .then(() => this.chatManager.fetchUpdate())
+          .then(() => this.scrollToLatestMessages())
     }
 
     this.setState({ newMessage: '' })
@@ -551,6 +609,10 @@ class App extends Component {
                     <tr>
                         <td>Request a list of known users from the Operator</td>
                         <td><code>/users</code></td>
+                    </tr>
+                    <tr>
+                        <td>Start/Stop an archiving bot to automatically archive your expired messages</td>
+                        <td><code>/bot [on/off] | [5s/m/h/d]</code></td>
                     </tr>
                     <tr>
                         <th>If you create a chat, you can:</th>

@@ -1,4 +1,4 @@
 daml 1.2
 module ChatModule where
 
-import Chat.V2()
+import Chat.V3()

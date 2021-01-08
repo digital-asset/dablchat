@@ -24,30 +24,24 @@ function sleep(ms) {
 
 async function ChatManager(party, token, updateUser, updateState) {
 
-  const ADDRESS_BOOK_TEMPLATE = 'Chat.V2:AddressBook'
-  const CHAT_TEMPLATE = 'Chat.V2:Chat'
-  const MESSAGE_TEMPLATE = 'Chat.V2:Message'
-  const SELF_ALIAS_TEMPLATE = 'Chat.V2:SelfAlias'
-  const USER_TEMPLATE = 'Chat.V2:User'
-  const USER_INVITATION_TEMPLATE = 'Chat.V2:UserInvitation'
-  const USER_ACCOUNT_REQUEST_TEMPLATE = 'Chat.V2:UserAccountRequest'
+  const ADDRESS_BOOK_TEMPLATE = 'Chat.V3:AddressBook'
+  const CHAT_TEMPLATE = 'Chat.V3:Chat'
+  const MESSAGE_TEMPLATE = 'Chat.V3:Message'
+  const SELF_ALIAS_TEMPLATE = 'Chat.V3:SelfAlias'
+  const USER_TEMPLATE = 'Chat.V3:User'
+  const USER_INVITATION_TEMPLATE = 'Chat.V3:UserInvitation'
+  const USER_ACCOUNT_REQUEST_TEMPLATE = 'Chat.V3:UserAccountRequest'
 
   const headers = {
     "Authorization": `Bearer ${token.toString()}`,
     'Content-Type': 'application/json'
   }
 
-  const siteSubDomain = (path = '/data/') => {
+  const siteSubDomain = () => {
     if (window.location.hostname === 'localhost') {
         return window.location.hostname + (window.location.port ? ':' + window.location.port : '');
     }
-
-    let host = window.location.host.split('.')
-    const ledgerId = host[0];
-    let apiUrl = host.slice(1)
-    apiUrl.unshift('api')
-
-    return apiUrl.join('.') + (window.location.port ? ':' + window.location.port : '') + path + ledgerId;
+    return window.location.host;
   }
 
   const post = (url, options = {}) => {
@@ -57,7 +51,7 @@ async function ChatManager(party, token, updateUser, updateState) {
   }
 
   const fetchPublicToken = async () => {
-    const response = await fetch('//' + siteSubDomain('/api/ledger/') + '/public/token', { method: 'POST' });
+    const response = await fetch('//' + siteSubDomain() + '/.hub/v1/public/token', { method: 'POST' });
     const jsonResp = await response.json();
     const accessToken = jsonResp['access_token'];
     return accessToken;
@@ -98,6 +92,11 @@ async function ChatManager(party, token, updateUser, updateState) {
 
   const postPublic = (url, options = {}) => {
     Object.assign(options, { method: 'POST', headers: publicHeaders });
+    return fetch('//' + siteSubDomain() + url, options);
+  }
+
+  const getPublic = (url, options = {}) => {
+    Object.assign(options, { method: 'GET', headers: publicHeaders });
     return fetch('//' + siteSubDomain() + url, options);
   }
 
@@ -216,6 +215,52 @@ async function ChatManager(party, token, updateUser, updateState) {
     }
   }
 
+  const getPublicAutomation = async () => {
+    return getPublic('/.hub/v1/published')
+  }
+
+  const deployArchiveBot = async (owner, artifactHash) => {
+    await post('/.hub/v1/published/deploy', {
+      body: JSON.stringify({
+        artifactHash: artifactHash,
+        owner: owner
+      })
+    })
+  }
+
+  const undeployArchiveBot = async (artifactHash) => {
+    await post('/.hub/v1/published/undeploy/' + artifactHash)
+  }
+
+  const archiveBotRequest = async (user, botName, enabled, message) => {
+    await post('/v1/exercise', {
+      body: JSON.stringify({
+        templateId: USER_TEMPLATE,
+        contractId: user.contractId,
+        choice: 'User_RequestArchiveBot',
+        argument: {
+          botName: botName,
+          enabled: enabled,
+          message: message
+        }
+      })
+    })
+  }
+
+  const updateUserSettings = async (user, timedelta) => {
+    await post('/v1/exercise', {
+      body: JSON.stringify({
+        templateId: USER_TEMPLATE,
+        contractId: user.contractId,
+        choice: 'User_UpdateUserSettings',
+        argument: {
+          newArchiveMessagesAfter: timedelta,
+        }
+      })
+    })
+  }
+
+
   const acceptInvitation = async (userInvitation) => {
     await post('/v1/exercise', {
       body: JSON.stringify({
@@ -238,7 +283,7 @@ async function ChatManager(party, token, updateUser, updateState) {
         argument: {
           poster: user.user,
           message: message,
-          postedAt: seconds.toString()
+          postedAt: seconds
         }
       })
     })
@@ -404,7 +449,12 @@ async function ChatManager(party, token, updateUser, updateState) {
     requestUserList,
     renameChat,
     archiveChat,
-    forwardToSlack
+    forwardToSlack,
+    getPublicAutomation,
+    deployArchiveBot,
+    archiveBotRequest,
+    undeployArchiveBot,
+    updateUserSettings
   }
 }
 

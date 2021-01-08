@@ -1,6 +1,5 @@
 import React from 'react';
 
-
 const Login = props => {
   const { partyId, handleSubmit, handleUserInput, handleTokenInput, token } = props;
 

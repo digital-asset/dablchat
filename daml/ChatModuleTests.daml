@@ -1,4 +1,4 @@
 daml 1.2
 module ChatModuleTests where
 
-import Test.ChatTest.V2()
+import Test.ChatTest.V3()

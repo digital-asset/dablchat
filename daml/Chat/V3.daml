@@ -1,5 +1,4 @@
-daml 1.2
-module Chat.V2 where
+module Chat.V3 where
 
 import DA.List as L
 import DA.Next.Map as M
@@ -66,7 +65,8 @@ template UserInvitation
         do
           let contacts = M.fromList [(operator, "Operator")]
           create AddressBook with ..
-          create UserSettings with archiveMessagesAfter = 14, ..
+          -- default archive retention period: 14 days in second
+          create UserSettings with archiveMessagesAfter = Duration{time=14, unit = "d"}, ..
           create Chat
             with creator = operator, members = [operator, user],
                     name = "Operator Bot",
@@ -126,6 +126,20 @@ template User
       nonconsuming User_RequestAliases : ContractId AliasesRequest
         do create AliasesRequest with ..
 
+      nonconsuming User_RequestArchiveBot : ContractId ArchiveBotRequest
+        with
+          botName : Text
+          enabled : Bool
+          message : Optional Text
+        do create ArchiveBotRequest with ..
+      
+      nonconsuming User_UpdateUserSettings: ContractId UserSettings
+        with
+          newArchiveMessagesAfter : Duration
+        do
+          (sId, _) <- fetchByKey @UserSettings user
+          exercise sId UserSettingsUpdate with ..
+
       nonconsuming User_RequestArchiveMessages : ContractId ArchiveMessagesRequest
         do create ArchiveMessagesRequest with ..
 
@@ -138,11 +152,12 @@ template UserSettings
   with
     operator : Party
     user : Party
-    archiveMessagesAfter : Int
+    archiveMessagesAfter : Duration
   where
     signatory user
+    observer operator
 
-    ensure archiveMessagesAfter >= 0
+    ensure archiveMessagesAfter.time >= 0 && archiveMessagesAfter.unit `elem` ["s", "m", "h", "d"]
 
     key user : Party
     maintainer key
@@ -150,7 +165,7 @@ template UserSettings
     controller user can
       UserSettingsUpdate : ContractId UserSettings
         with
-          newArchiveMessagesAfter : Int
+          newArchiveMessagesAfter : Duration
         do
           create this with archiveMessagesAfter = newArchiveMessagesAfter
 
@@ -186,7 +201,7 @@ template AddressBook
 template Message
   with
     sender : Party
-    postedAt : Text
+    postedAt : Int
     message : Text
     recipients : [Party]
     chatId : Text
@@ -258,6 +273,18 @@ template AliasesRequest
     signatory operator
 
 
+
+template ArchiveBotRequest
+  with
+    operator : Party
+    user : Party
+    botName: Text
+    enabled: Bool
+    message: Optional Text
+  where
+    signatory operator
+
+
 template ForwardToSlack
   with
     operator : Party
@@ -312,7 +339,7 @@ template Chat
       with
         poster : Party
         message : Text
-        postedAt : Text
+        postedAt : Int
       controller poster
       do
         assert $ poster `elem` members
@@ -371,3 +398,10 @@ template Chat
               cid <- create ForwardToSlack with user = creator, ..
               return $ Some cid
             _ -> return None
+
+data Duration = Duration
+  with
+    time: Int
+    unit: Text
+  deriving (Eq, Show)
+
