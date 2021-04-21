@@ -12,6 +12,7 @@ import chatFaceIcon from './icons/chatface.svg'
 import lockIcon from './icons/lock.svg'
 import publicIcon from './icons/public.svg'
 import userIcon from './icons/user.svg'
+import jwt_decode from "jwt-decode";
 
 import 'skeleton-css/css/normalize.css';
 import 'skeleton-css/css/skeleton.css';
@@ -169,6 +170,16 @@ async function makeChatName() {
     return chatName
 }
 
+const partyFromToken = (token) => {
+  try {
+    const decoded = jwt_decode(token);
+    return decoded["https://daml.com/ledger-api"].actAs.shift()
+  } catch (e) {
+    console.log(e.message || "failed to extract party from jwt token")
+    return undefined;
+  }
+}
+
 
 const INITIAL_STATE = {
   partyId: '',
@@ -191,10 +202,10 @@ class App extends Component {
     this.state = INITIAL_STATE;
     const url = new URL(window.location);
     const urlParams = new URLSearchParams(url.search);
-    const partyId = urlParams.get('party') || localStorage.getItem('party.id');
     const tokenCookiePair = document.cookie.split('; ').find(row => row.startsWith('DABL_LEDGER_ACCESS_TOKEN')) || '';
     const tokenCookieSecret = tokenCookiePair.slice(tokenCookiePair.indexOf('=') + 1);
     const token = tokenCookieSecret || urlParams.get('token') || localStorage.getItem('party.token');
+    const partyId = partyFromToken(token) || localStorage.getItem('party.id');
 
     this.handleInput = this.handleInput.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
