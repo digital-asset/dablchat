@@ -40,7 +40,7 @@ git clone https://github.com/digital-asset/dablchat.git
 make clean && make package
 ```
 
-This will create a versioned `dablchat-model-x.x.x.dar` file containing the compiled DAML model, a `dablchat-operator-bot-x.x.x.tar.gz` and `dablchat-user-bot-x.x.x.tar.gz` tarballs containing the python automation, and a `dablchat-ui-x.x.x.zip` archive containing the UI static assets. These files will live under the `target/` directory along with a zip archive in the form of a dabl integtation (`dabl-chat.dit`), containing all of them.
+This will create a versioned `daml-chat-model-x.x.x.dar` file containing the compiled Daml model, a `daml-chat-operator-bot-x.x.x.tar.gz` and `daml-chat-user-bot-x.x.x.tar.gz` tarballs containing the python automation, and a `daml-chat-ui-x.x.x.zip` archive containing the UI static assets. These files will live under the `target/` directory along with a zip archive in the form of a dabl integtation (`daml-chat-x.x.x.dit`), containing all of them.
 
 ### 5. Upload and deploy to Daml Hub
 
@@ -49,7 +49,7 @@ Then drag and drop the each one of them to your newly created ledger.
 
 ### 6. Set up your automation and UI
 
-Click on your ledger and configure the `dablchat-operator-bot` to run as the `UserAdmin` party and the `dablchat-user-bot` as your user. The `dablchat-ui-x.x.x.zip` will automatically be published to the subdomain containing your ledger id. `<your-ledger-id>.projectdabl.com`.
+Click on your ledger and configure the `daml-chat-operator-bot` to run as the `UserAdmin` party and the `daml-chat-user-bot` as your user. The `daml-chat-ui-x.x.x.zip` will automatically be published to the subdomain containing your ledger id. `<your-ledger-id>.projectdabl.com`.
 
 ### 7. Check that the Operator has initialized
 
