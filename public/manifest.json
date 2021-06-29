@@ -1,6 +1,6 @@
 {
-  "short_name": "DABL Chat",
-  "name": "A DAML app for project:DABL",
+  "short_name": "Daml Chat",
+  "name": "A Daml app for Daml Hub",
   "icons": [
     {
       "src": "favicon.ico",

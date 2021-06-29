@@ -112,7 +112,7 @@ def main():
         posted_at = time.strftime("%a, %d %b %Y %H:%M:%S %Z",
                                   time.localtime(float(cdata['postedAt'])))
         message_text = f"`From:` {cdata['sender']}\n`Posted At:` {posted_at}\n" \
-                       f"`DABL Chat Id:` {cdata['chatId']}\n`Message:` {cdata['message']}"
+                       f"`Daml Chat Id:` {cdata['chatId']}\n`Message:` {cdata['message']}"
         return [create(SlackIntegration.OutboundMessage, {
             'integrationParty': client.party,
             'slackChannel': f['slackChannelId'],

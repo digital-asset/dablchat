@@ -592,8 +592,8 @@ class App extends Component {
           ) : (
             <div className="no-chat-selected">
               <img className="chat-face-icon" src={chatFaceIcon} alt="app logo" />
-              <h1>Welcome to DABL Chat</h1>
-                <span>An app written in  <a href="http://www.daml.com" target="_blank" rel="noopener noreferrer">DAML</a> and deployed using  <a href="http://www.projectdabl.com" target="_blank" rel="noopener noreferrer">project:dabl</a></span>
+              <h1>Welcome to Daml Chat</h1>
+                <span>An app written in  <a href="http://www.daml.com" target="_blank" rel="noopener noreferrer">Daml</a> and deployed using  <a href="https://hub.daml.com" target="_blank" rel="noopener noreferrer">Daml Hub</a></span>
                 <p>View source code on <a href="https://github.com/digital-asset/dablchat" target="_blank" rel="noopener noreferrer">GitHub</a></p>
                 <table>
                   <tbody>
