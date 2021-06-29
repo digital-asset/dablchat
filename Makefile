@@ -30,14 +30,14 @@ target:
 
 $(operator_bot):
 	cd python/operator && DDIT_VERSION=$(VERSION) $(PYTHON) setup.py sdist
-	rm -fr python/operator/daml-chat_operator_bot.egg-info
+	rm -fr python/operator/daml_chat_operator_bot.egg-info
 	mkdir -p $(@D)
 	mv python/operator/dist/daml-chat-operator-bot-$(VERSION).tar.gz $@
 	rm -r python/operator/dist
 
 $(user_bot):
 	cd python/user && DDIT_VERSION=$(VERSION) $(PYTHON) setup.py sdist
-	rm -fr python/user/daml-chat_user_bot.egg-info
+	rm -fr python/user/daml_chat_user_bot.egg-info
 	mkdir -p $(@D)
 	mv python/user/dist/daml-chat-user-bot-$(VERSION).tar.gz $@
 	rm -r python/user/dist
@@ -53,6 +53,6 @@ $(ui): $(user_bot)
 .PHONY: clean
 clean:
 	rm -fr \
-       python/operator/daml-chat_operator_bot.egg-info python/operator/dist \
-       python/user/daml-chat_user_bot.egg-info python/user/dist \
-       target *.tmp *.dit
+       python/operator/daml_chat_operator_bot.egg-info python/operator/dist \
+       python/user/daml_chat_user_bot.egg-info python/user/dist \
+       target *.tmp *.dit *.dar
