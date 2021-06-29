@@ -1,7 +1,7 @@
 import os
 from setuptools import setup
 
-setup(name='dablchat-operator-bot',
+setup(name='daml-chat-operator-bot',
       version=os.environ.get('DDIT_VERSION', 'release'),
       description='Daml Chat Operator',
       author='Digital Asset',
