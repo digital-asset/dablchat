@@ -57,11 +57,13 @@ async function ChatManager(party, token, updateUser, updateState) {
     return accessToken;
   }
 
-  const getWellKnownParties = async () => {
-    const url = window.location.host
-    const response = await fetch('//' + url + '/.well-known/dabl.json');
-    const dablJson = await response.json();
-    return dablJson
+  const getDefaultParties = async () => {
+    const url = window.location.host;
+    const response = await fetch('//' + url + '/.hub/v1/default-parties');
+    const jsonResp = await response.json();
+    const publicParty = jsonResp["result"].find(p => p["displayName"] === "Public")["identifier"];
+    const userAdminParty = jsonResp["result"].find(p => p["displayName"] === "UserAdmin")["identifier"];
+    return {publicParty, userAdminParty};
   }
 
   const createUserAccountRequest = async (operator, userName) => {
@@ -77,7 +79,7 @@ async function ChatManager(party, token, updateUser, updateState) {
     })
   }
 
-  const parties = await getWellKnownParties();
+  const parties = await getDefaultParties();
   const operatorId = localStorage.getItem("operator.id") || parties['userAdminParty'];
   localStorage.setItem("operator.id", operatorId)
   localStorage.setItem("public.party", parties['publicParty']);
