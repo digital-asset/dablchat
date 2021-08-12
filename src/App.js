@@ -200,11 +200,9 @@ class App extends Component {
   constructor() {
     super();
     this.state = INITIAL_STATE;
-    const url = new URL(window.location);
-    const urlParams = new URLSearchParams(url.search);
     const tokenCookiePair = document.cookie.split('; ').find(row => row.startsWith('DAMLHUB_LEDGER_ACCESS_TOKEN')) || '';
     const tokenCookieSecret = tokenCookiePair.slice(tokenCookiePair.indexOf('=') + 1);
-    const token = tokenCookieSecret || urlParams.get('token') || localStorage.getItem('party.token');
+    const token = tokenCookieSecret || localStorage.getItem('party.token');
     const partyId = partyFromToken(token) || localStorage.getItem('party.id');
 
     this.handleInput = this.handleInput.bind(this);

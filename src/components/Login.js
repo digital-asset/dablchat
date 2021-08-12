@@ -13,7 +13,7 @@ const Login = props => {
         <form className="login-form" onSubmit={handleSubmit}>
           {showLoginWithDABL && (
             <>
-              <a className="submit-btn dabl-login" href={`${loginUrl}`}>Log In with Daml Hub</a>
+              <a className="submit-btn dabl-login" href={loginUrl}>Log In with Daml Hub</a>
               <label className="username-label" style={{"text-align": "center", "margin-top" : "10px"}} htmlFor="username">
                 OR
               </label>
