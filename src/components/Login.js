@@ -5,17 +5,7 @@ const Login = props => {
 
   const showLoginWithDABL = window.location.hostname !== 'localhost';
 
-  const getLoginUrl = () => {
-    let host = window.location.host.split('.');
-    const ledgerId = host[0];
-    let loginUrl = host.slice(1)
-    loginUrl.unshift('login')
-
-    return loginUrl.join('.') + (window.location.port ? ':' + window.location.port : '')
-      + '/auth/login?ledgerId=' + ledgerId;
-  }
-
-  const loginUrl = (showLoginWithDABL && getLoginUrl()) || ""
+  const loginUrl = (showLoginWithDABL && "/.hub/v1/auth/login") || ""
 
   return (
     <div className="login-container">
@@ -23,7 +13,7 @@ const Login = props => {
         <form className="login-form" onSubmit={handleSubmit}>
           {showLoginWithDABL && (
             <>
-              <a className="submit-btn dabl-login" href={`https://${loginUrl}`}>Log In with Daml Hub</a>
+              <a className="submit-btn dabl-login" href={loginUrl}>Log In with Daml Hub</a>
               <label className="username-label" style={{"text-align": "center", "margin-top" : "10px"}} htmlFor="username">
                 OR
               </label>
