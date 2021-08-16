@@ -1,6 +1,7 @@
 DIT_NAME=$(shell ddit targetname)
 BASENAME=$(shell ddit targetname --basename)
 VERSION=$(shell ddit ditversion)
+BOT_VERSION=$(shell ddit  ditversion | sed "s/-rc./rc/")
 
 NAME=${BASENAME}-${VERSION}
 
@@ -8,8 +9,8 @@ PKG_FILES=$(shell find pkg -type f)
 
 PYTHON := pipenv run python
 
-operator_bot := target/daml-chat-operator-bot-$(VERSION).tar.gz
-user_bot := target/daml-chat-user-bot-$(VERSION).tar.gz
+operator_bot := target/daml-chat-operator-bot-$(BOT_VERSION).tar.gz
+user_bot := target/daml-chat-user-bot-$(BOT_VERSION).tar.gz
 ui := target/daml-chat-ui-$(VERSION).zip
 
 .PHONY: all package publish
@@ -29,17 +30,17 @@ target:
 	mkdir $@
 
 $(operator_bot):
-	cd python/operator && DDIT_VERSION=$(VERSION) $(PYTHON) setup.py sdist
+	cd python/operator && DDIT_VERSION=$(BOT_VERSION) $(PYTHON) setup.py sdist
 	rm -fr python/operator/daml_chat_operator_bot.egg-info
 	mkdir -p $(@D)
-	mv python/operator/dist/daml-chat-operator-bot-$(VERSION).tar.gz $@
+	mv python/operator/dist/daml-chat-operator-bot-$(BOT_VERSION).tar.gz $@
 	rm -r python/operator/dist
 
 $(user_bot):
-	cd python/user && DDIT_VERSION=$(VERSION) $(PYTHON) setup.py sdist
+	cd python/user && BOT_VERSION=$(BOT_VERSION) $(PYTHON) setup.py sdist
 	rm -fr python/user/daml_chat_user_bot.egg-info
 	mkdir -p $(@D)
-	mv python/user/dist/daml-chat-user-bot-$(VERSION).tar.gz $@
+	mv python/user/dist/daml-chat-user-bot-$(BOT_VERSION).tar.gz $@
 	rm -r python/user/dist
 
 $(ui): $(user_bot)

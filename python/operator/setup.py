@@ -2,7 +2,7 @@ import os
 from setuptools import setup
 
 setup(name='daml-chat-operator-bot',
-      version=os.environ.get('DDIT_VERSION', 'release'),
+      version=os.environ.get('BOT_VERSION', 'release'),
       description='Daml Chat Operator',
       author='Digital Asset',
       license='Apache2',
