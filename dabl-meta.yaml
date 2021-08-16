@@ -1,10 +1,10 @@
 catalog:
   name: daml-chat
-  version: 0.2.3
+  version: 2.0.0-rc.1
   short_description: Daml Chat
   description: A straightforward web chat app.
   author: Digital Asset (Switzerland) GmbH
   source_url: https://github.com/digital-asset/dablchat
   license: Apache-2.0
-  tags: [dabl-sample-app, application]
+  tags: [dabl-sample-app, application, experimental]
   icon_file: dabl-chat.png
