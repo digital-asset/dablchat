@@ -1,7 +1,7 @@
 DIT_NAME=$(shell ddit targetname)
 BASENAME=$(shell ddit targetname --basename)
 VERSION=$(shell ddit ditversion)
-BOT_VERSION=$(shell ddit  ditversion | sed "s/-rc./rc/")
+BOT_VERSION=$(shell ddit ditversion | sed "s/-rc./rc/")
 
 NAME=${BASENAME}-${VERSION}
 
@@ -30,7 +30,7 @@ target:
 	mkdir $@
 
 $(operator_bot):
-	cd python/operator && DDIT_VERSION=$(BOT_VERSION) $(PYTHON) setup.py sdist
+	cd python/operator && BOT_VERSION=$(BOT_VERSION) $(PYTHON) setup.py sdist
 	rm -fr python/operator/daml_chat_operator_bot.egg-info
 	mkdir -p $(@D)
 	mv python/operator/dist/daml-chat-operator-bot-$(BOT_VERSION).tar.gz $@
