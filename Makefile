@@ -22,7 +22,7 @@ publish: package
 
 package: ${DIT_NAME}
 
-${DIT_NAME}: target dabl-meta.yaml ${PKG_FILES} $(operator_bot) $(user_bot) $(ui)
+${DIT_NAME}: target dit-meta.yaml ${PKG_FILES} $(operator_bot) $(user_bot) $(ui)
 	ddit build \
 	   --subdeployment $(operator_bot) $(user_bot) $(ui)
 
