@@ -31,3 +31,6 @@ target/*
 
 # generated in-tree by build
 Pipfile
+
+daml-chat-*.dar
+daml-chat-*.dit
