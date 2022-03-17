@@ -1,6 +1,6 @@
-sdk-version: 1.8.0
+sdk-version: 1.18.1
 name: daml-chat
-version: 1.8.6
+version: 1.8.7
 source: daml/Chat/V3.daml
 dependencies:
   - daml-prim
