@@ -1,4 +1,0 @@
-daml 1.2
-module ChatModule where
-
-import Chat.V3()

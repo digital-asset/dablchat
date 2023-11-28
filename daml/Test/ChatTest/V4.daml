@@ -1,0 +1,57 @@
+module Test.ChatTest.V4 where
+
+import Daml.Script (Script, allocateParty, createCmd, exerciseCmd)
+
+import Chat.V4
+
+
+testCreateOperator : Script ()
+testCreateOperator = do
+  operator <- allocateParty "operator"
+  publicParty <- allocateParty "public"
+  createOperator operator publicParty
+  pure ()
+
+
+testCreateUserAccount : Script ()
+testCreateUserAccount = do
+  operator <- allocateParty "operator"
+  publicParty <- allocateParty "public"
+  user <- allocateParty "user-1"
+  let userName = "first user name"
+  _ <- createOperator operator publicParty
+  accountRequestCid <- userAccountRequestTestBuilder operator user userName
+  operatorAcceptUserAccountRequest operator accountRequestCid
+  pure ()
+
+
+testCreateDuplicatedUserAccount : Script ()
+testCreateDuplicatedUserAccount = do
+  operator <- allocateParty "operator"
+  publicParty <- allocateParty "public"
+  user <- allocateParty "user-2"
+  let userName = "mr duplicitious"
+  _ <- createOperator operator publicParty
+  firstAccountRequestCid <- userAccountRequestTestBuilder operator user userName
+  secondAccountRequestCid <- userAccountRequestTestBuilder operator user userName
+  operatorAcceptUserAccountRequest operator firstAccountRequestCid
+  operatorAcceptUserAccountRequest operator secondAccountRequestCid
+  pure ()
+
+
+createOperator : Party -> Party -> Script (ContractId Operator)
+createOperator operator publicParty = do
+  submit operator do
+    createCmd Operator with ..
+
+
+userAccountRequestTestBuilder : Party -> Party -> Text -> Script (ContractId UserAccountRequest)
+userAccountRequestTestBuilder operator user userName = do
+  submit user do
+    createCmd UserAccountRequest with ..
+
+
+operatorAcceptUserAccountRequest : Party -> (ContractId UserAccountRequest) -> Script (Either (ContractId UserInvitation) (ContractId User))
+operatorAcceptUserAccountRequest operator userSessionCid = do
+  submit operator do
+    exerciseCmd userSessionCid UserAccountRequest_Accept
