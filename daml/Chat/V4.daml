@@ -1,0 +1,440 @@
+module Chat.V4 where
+
+import DA.List as L
+import DA.Map as M
+import DA.Assert ((=/=))
+
+template Operator
+  with
+    operator : Party
+    publicParty : Party
+  where
+    signatory operator
+
+    key operator : Party
+    maintainer key
+
+    nonconsuming choice Operator_InviteUser : ContractId UserInvitation
+      with
+        user : Party
+        userName : Text
+      controller operator
+      do
+        create UserInvitation with ..
+
+
+template UserAccountRequest
+  with
+    operator : Party
+    user : Party
+    userName : Text
+  where
+    signatory user
+    observer operator
+
+    choice UserAccountRequest_Accept : Either (ContractId UserInvitation) (ContractId User)
+      controller operator
+      do
+        let userKey = (operator, user)
+        optUserInvitation <- lookupByKey @UserInvitation userKey
+        optUser <- lookupByKey @User userKey
+        case (optUserInvitation, optUser) of
+          (None, None) -> do
+            (opCid, _) <- fetchByKey @Operator operator
+            userInvitationCid <- exercise opCid Operator_InviteUser with ..
+            return $ Left userInvitationCid
+          (Some userInvitationCid, _) -> return $ Left userInvitationCid
+          (_, Some userCid) -> return $ Right userCid
+
+    choice UserAccountRequest_Reject : ()
+      controller operator
+      do
+        return ()
+
+
+template UserInvitation
+  with
+    operator : Party
+    publicParty : Party
+    user : Party
+    userName : Text
+  where
+    signatory operator
+    observer user
+
+    key (operator, user) : (Party, Party)
+    maintainer key._1
+
+    choice UserInvitation_Accept : ContractId User
+      controller user
+      do
+        let contacts = M.fromList [(operator, "Operator")]
+        create AddressBook with ..
+        -- default archive retention period: 14 days in second
+        create UserSettings with archiveMessagesAfter = Duration{time=14, unit = "d"}, ..
+        create Chat with
+          creator = operator
+          members = [operator, user]
+          name = "Operator Bot"
+          topic = Some "Hey there! I am the Operator Bot"
+          chatId = partyToText user
+          isPublic = False
+          ..
+        create User with ..
+
+    choice UserInvitation_Reject : ()
+      controller user
+      do
+        return ()
+
+
+template User
+  with
+    operator : Party
+    user : Party
+    publicParty : Party
+    userName : Text
+  where
+    signatory operator, user
+
+    key (operator, user) : (Party, Party)
+    maintainer key._1
+
+    nonconsuming choice User_RequestPublicChat : ContractId CreateChatRequest
+      with
+        name : Text
+        topic : Optional Text
+      controller user
+      do
+        create CreateChatRequest with members = [], isPublic = True, ..
+
+    nonconsuming choice User_RequestPrivateChat : ContractId CreateChatRequest
+      with
+        name : Text
+        members : [Text]
+        topic : Optional Text
+      controller user
+      do
+        create CreateChatRequest with isPublic = False, ..
+
+    nonconsuming choice User_UpdateSelfAlias : Optional (ContractId SelfAlias)
+      with
+        alias : Text
+      controller user
+      do
+        optAliasCid <- lookupByKey @SelfAlias (operator, user)
+        case optAliasCid of
+          Some cid | alias /= "" -> do
+              newCid <- exercise cid SelfAlias_Rename with newAlias = alias
+              return $ Some newCid
+          Some cid | alias == "" -> do
+            archive cid
+            return None
+          None | alias /= "" -> do
+            cid <- create SelfAlias with ..
+            return $ Some cid
+          _ -> return None
+
+    nonconsuming choice User_RequestAliases : ContractId AliasesRequest
+      controller user
+      do
+        create AliasesRequest with ..
+
+    nonconsuming choice User_RequestArchiveBot : ContractId ArchiveBotRequest
+      with
+        botName : Text
+        enabled : Bool
+        message : Optional Text
+      controller user
+      do
+        create ArchiveBotRequest with ..
+
+    nonconsuming choice User_UpdateUserSettings: ContractId UserSettings
+      with
+        newArchiveMessagesAfter : Duration
+      controller user
+      do
+        (sId, _) <- fetchByKey @UserSettings user
+        exercise sId UserSettingsUpdate with ..
+
+    nonconsuming choice User_RequestArchiveMessages : ContractId ArchiveMessagesRequest
+      controller user
+      do
+        create ArchiveMessagesRequest with ..
+
+    choice User_Offboard : ()
+      controller user
+      do
+        return ()
+
+    choice User_OperatorOffboard : ()
+      controller operator
+      do
+        return ()
+
+
+template UserSettings
+  with
+    operator : Party
+    user : Party
+    archiveMessagesAfter : Duration
+  where
+    signatory user
+    observer operator
+
+    ensure archiveMessagesAfter.time >= 0 && archiveMessagesAfter.unit `elem` ["s", "m", "h", "d"]
+
+    key user : Party
+    maintainer key
+
+    choice UserSettingsUpdate : ContractId UserSettings
+      with
+        newArchiveMessagesAfter : Duration
+      controller user
+      do
+        create this with archiveMessagesAfter = newArchiveMessagesAfter
+
+
+template AddressBook
+  with
+    operator : Party
+    user : Party
+    contacts : Map Party Text
+  where
+    signatory user
+
+    key user : Party
+    maintainer key
+
+    choice AddressBook_Add : ContractId AddressBook
+      with
+        party : Party
+        name : Text
+      controller user
+      do
+        party =/= operator
+        create this with contacts = insert party name contacts
+
+    choice AddressBook_Remove : ContractId AddressBook
+      with
+        party : Party
+      controller user
+      do
+        party =/= operator
+        create this with contacts = M.delete party contacts
+
+
+template Message
+  with
+    sender : Party
+    postedAt : Int
+    message : Text
+    recipients : [Party]
+    chatId : Text
+  where
+    signatory sender
+    observer recipients
+
+
+template CreateChatRequest
+  with
+    operator : Party
+    user : Party
+    publicParty : Party
+    name : Text
+    topic : Optional Text
+    isPublic : Bool
+    members : [Text]
+  where
+    signatory operator, user
+
+    choice CreateChatRequest_Respond : Optional (ContractId Chat)
+      with
+        partyMembers : [Party]
+        chatId : Text
+      controller operator
+      do
+        optChatCid <- lookupByKey @Chat (operator, name)
+        case (optChatCid, isPublic) of
+          (Some _, True) -> return None
+          _ -> do
+            chatCid <- create Chat with creator = user, members = dedup (user :: partyMembers), ..
+            return $ Some chatCid
+
+    choice CreateChatRequest_Reject : ()
+      controller operator
+      do
+        return ()
+
+
+template SelfAlias
+  with
+    operator : Party
+    publicParty : Party
+    user : Party
+    alias : Text
+  where
+    signatory operator, user
+
+    observer publicParty
+
+    key (operator, user) : (Party, Party)
+    maintainer key._2
+
+    choice SelfAlias_Rename : ContractId SelfAlias
+      with
+        newAlias : Text
+      controller user
+      do
+        create this with alias = newAlias
+
+    choice SelfAlias_Archive : ()
+      controller operator
+      do
+        return ()
+
+
+template AliasesRequest
+  with
+    operator : Party
+    user : Party
+  where
+    signatory operator
+
+
+
+template ArchiveBotRequest
+  with
+    operator : Party
+    user : Party
+    botName: Text
+    enabled: Bool
+    message: Optional Text
+  where
+    signatory operator
+
+
+template ForwardToSlack
+  with
+    operator : Party
+    user : Party
+    chatId : Text
+    slackChannelId : Text
+  where
+    signatory operator, user
+
+    key (operator, user, chatId) : (Party, Party, Text)
+    maintainer key._2
+
+    choice ForwardToSlack_UpdateChannel : ContractId ForwardToSlack
+      with
+        newSlackChannelId : Text
+      controller user
+      do
+        create this with slackChannelId = newSlackChannelId
+
+    choice ForwardToSlack_Archive : ()
+      controller operator
+      do
+        return ()
+
+
+template ArchiveMessagesRequest
+  with
+    user : Party
+  where
+    signatory user
+
+
+template Chat
+  with
+    operator : Party
+    creator : Party
+    members : [Party]
+    publicParty : Party
+    name : Text
+    topic : Optional Text
+    chatId : Text
+    isPublic : Bool
+  where
+    let chatSignatory = if isPublic then operator else creator
+        observers = if isPublic then publicParty :: members else members
+    signatory chatSignatory
+    observer observers
+
+    key (chatSignatory, if isPublic then name else chatId) : (Party, Text)
+    maintainer key._1
+
+    nonconsuming choice Chat_PostMessage : ContractId Message
+      with
+        poster : Party
+        message : Text
+        postedAt : Int
+      controller poster
+      do
+        assert $ poster `elem` members
+        create Message with sender = poster, recipients = dedup $ chatSignatory :: observers, ..
+
+    choice Chat_AddMembers : ContractId Chat
+      with
+        member : Party
+        newMembers : [Party]
+      controller member
+      do
+        assert (isPublic || member == creator)
+        assert (not $ all (`elem` members) newMembers)
+        create this with members = dedup $ newMembers ++ members
+
+    choice Chat_RemoveMembers : ContractId Chat
+      with
+        member : Party
+        membersToRemove : [Party]
+      controller member
+      do
+        assert (member == creator || (dedup membersToRemove) == [member])
+        assert (any (`elem` members) membersToRemove)
+        create this with members = L.filter (`notElem` membersToRemove) members
+
+    choice ChatSignatoryArchive : ()
+      controller chatSignatory
+      do return ()
+
+    choice Chat_Rename : ContractId Chat
+      with
+        newName : Text
+        newTopic : Optional Text
+      controller creator
+      do
+        assert (newName /= name || newTopic /= topic)
+        create this with name = newName, topic = newTopic
+
+    choice Chat_Archive : ()
+      controller creator
+      do return ()
+
+    nonconsuming choice Chat_ForwardToSlack : Optional (ContractId ForwardToSlack)
+      with
+        slackChannelId : Text
+      controller creator
+      do
+        optForwardToSlack <- lookupByKey @ForwardToSlack (operator, creator, chatId)
+        case optForwardToSlack of
+          Some cid | slackChannelId /= "" -> do
+              newCid <- exercise cid ForwardToSlack_UpdateChannel
+                with newSlackChannelId = slackChannelId
+              return $ Some newCid
+          Some cid | slackChannelId == "" -> do
+            archive cid
+            return None
+          None | slackChannelId /= "" -> do
+            cid <- create ForwardToSlack with user = creator, ..
+            return $ Some cid
+          _ -> return None
+
+
+data Duration = Duration
+  with
+    time: Int
+    unit: Text
+  deriving (Eq, Show)
+

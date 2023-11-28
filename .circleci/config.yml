@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2020, Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+# Copyright (c) 2020-2023, Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 
@@ -7,7 +7,7 @@ version: 2.1
 
 commands:
   install_sdk:
-    description: "Install the DAML SDK"
+    description: "Install the Daml SDK"
     parameters:
       version:
         type: string
@@ -38,7 +38,7 @@ jobs:
             sudo apt-get update
             sudo apt-get install -y --no-install-recommends openjdk-11-jdk
       - install_sdk:
-          version: "1.2.0"
+          version: "2.7.5"
       - save_cache:
           paths:
             - ~/.daml
