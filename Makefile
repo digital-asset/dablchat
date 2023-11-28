@@ -44,8 +44,8 @@ $(user_bot):
 	rm -r python/user/dist
 
 $(ui): $(user_bot)
-	yarn install
-	REACT_APP_ARCHIVE_BOT_HASH=$(shell sha256sum $(user_bot) | awk '{print $$1}') yarn build
+	npm install
+	REACT_APP_ARCHIVE_BOT_HASH=$(shell sha256sum $(user_bot) | awk '{print $$1}') npm build
 	zip -r daml-chat-ui-$(VERSION).zip build
 	mkdir -p $(@D)
 	mv daml-chat-ui-$(VERSION).zip $@
