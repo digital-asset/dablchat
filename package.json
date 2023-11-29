@@ -9,7 +9,7 @@
     "jwt-decode": "^3.1.2",
     "react": "^16.11.0",
     "react-dom": "^16.11.0",
-    "react-markdown": "^4.2.2",
+    "react-markdown": "^9.0.1",
     "react-scripts": "5.0.1",
     "react-scroll": "^1.7.14",
     "react-syntax-highlighter": "^13.5.3",
