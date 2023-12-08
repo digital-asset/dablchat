@@ -1,41 +1,43 @@
 {
   "name": "daml-chat",
-  "version": "2.0.0",
+  "version": "4.0.0",
   "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev web",
+    "build": "tsc && vite build web",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview web"
+  },
   "dependencies": {
+    "@daml.js/daml-chat": "file:web/generated/daml.js/daml-chat-4.0.0",
+    "@daml/ledger": "^2.7.6",
+    "@daml/types": "^2.7.6",
     "@webscopeio/react-textarea-autocomplete": "^4.6.1",
-    "emoji-mart": "^3.0.0",
-    "http-proxy-middleware": "^1.0.5",
+    "emoji-mart": "^5.5.2",
     "jwt-decode": "^3.1.2",
-    "react": "^16.11.0",
-    "react-dom": "^16.11.0",
+    "lodash": "^4.17.21",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "react-markdown": "^9.0.1",
-    "react-scripts": "5.0.1",
-    "react-scroll": "^1.7.14",
-    "react-syntax-highlighter": "^13.5.3",
+    "react-scroll": "^1.9.0",
+    "react-syntax-highlighter": "^15.5.0",
     "skeleton-css": "^2.0.4",
     "uuid": "^8.3.0"
   },
-  "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
-  },
-  "eslintConfig": {
-    "extends": "react-app"
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
-  "proxy": ""
+  "devDependencies": {
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
+    "@types/react-scroll": "^1.8.10",
+    "@types/uuid": "^9.0.7",
+    "@types/webscopeio__react-textarea-autocomplete": "^4.7.5",
+    "@typescript-eslint/eslint-plugin": "^6.10.0",
+    "@typescript-eslint/parser": "^6.10.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "eslint": "^8.53.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.4",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.0"
+  }
 }

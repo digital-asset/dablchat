@@ -1,12 +1,12 @@
-import React, { Component } from 'react';
-import ChatManager from './ChatManager'
+import { BaseSyntheticEvent, Component, FormEvent, KeyboardEvent } from 'react';
+import ChatManager, { Aliases, Chat, Message, User } from './ChatManager'
 import Login from './components/Login';
 import NewUser from './components/NewUser';
 import ChatList from './components/ChatList';
 import ChatMembers from './components/ChatMembers';
 import { animateScroll } from 'react-scroll';
 import ReactTextareaAutocomplete from "@webscopeio/react-textarea-autocomplete";
-import { emojiIndex } from 'emoji-mart'
+import { SearchIndex } from 'emoji-mart'
 import logoutIcon from './icons/logout.svg'
 import chatFaceIcon from './icons/chatface.svg'
 import lockIcon from './icons/lock.svg'
@@ -21,8 +21,10 @@ import './App.css';
 import ChatSession from './components/ChatSession';
 import { v4 as uuidv4 } from 'uuid';
 
-const Loading = ({ data }) => <div>Loading</div>
-const CommandAutoCompleteItem = ({ entity }) => {
+import { Party } from '@daml/types';
+
+const Loading = () => <div>Loading</div>
+const CommandAutoCompleteItem = ({ entity }: { entity: any }) => {
   return (
     <div className="chat-header">
       <img className="chat-icon"
@@ -35,7 +37,7 @@ const CommandAutoCompleteItem = ({ entity }) => {
   )
 };
 
-const publicBot = {name: "AutoArchivingBot", hash: process.env.REACT_APP_ARCHIVE_BOT_HASH}
+const publicBot = { name: "AutoArchivingBot", hash: 'UNUSED' }
 
 const commands = [
   {
@@ -90,14 +92,14 @@ const commands = [
 
 const GIPHY_TOKEN = 'kDqbzOZtPvy38TLdqonPnpTPrsLfW8uy'
 
-const getAllKnownUsers = (chats, aliases) => {
+const getAllKnownUsers = (chats: Chat[], aliases: Aliases) => {
   if (!chats) return []
   const chatMembers = [...new Set(chats.flatMap(c => c.chatMembers))]
 
-  return chatMembers.map(m => ({party: m, alias: (aliases[m] || "")}))
+  return chatMembers.map(m => ({ party: m, alias: (aliases[m] || "") }))
 }
 
-const UserAutoCompleteItem = ({ entity }) => {
+const UserAutoCompleteItem = ({ entity }: { entity: any }) => {
   return (
     <div className="chat-header">
       <img className="chat-icon"
@@ -111,7 +113,7 @@ const UserAutoCompleteItem = ({ entity }) => {
   )
 };
 
-const ChatAutoCompleteItem = ({ entity }) => {
+const ChatAutoCompleteItem = ({ entity }: { entity: any }) => {
   return (
     <div className="chat-header">
       <img className="chat-icon"
@@ -126,19 +128,19 @@ const ChatAutoCompleteItem = ({ entity }) => {
   )
 };
 
-const EmojiAutoCompleteItem = ({ entity }) => {
+const EmojiAutoCompleteItem = ({ entity }: { entity: any }) => {
   return (
     <div>{`️${entity.native} ${entity.colons}`}</div>
   )
 }
 
-function isValidBotCmd(words) {
+function isValidBotCmd(words: string[]) {
   if (words.length !== 1)
     return false;
   const action = words[0]
   if (['on', 'off'].includes(action.toLowerCase()))
     return true;
-  const duration = action.slice(0, -1)
+  const duration: any = action.slice(0, -1)
   const unit = action.substr(action.length - 1).toLowerCase()
   return !isNaN(duration) && ['s', 'm', 'h', 'd'].includes(unit);
 }
@@ -147,41 +149,62 @@ async function makeChatName() {
   const adjective = "adjective"
   const noun = "noun"
 
-  const headers = (wordType) => ({
+  const headers = (wordType: string) => ({
     "Referer": `https://randomwordgenerator.com/${wordType}.php`,
     'Accept': 'application/json, text/javascript, */*; q=0.01',
-    'x-requested-with':  'XMLHttpRequest'
+    'x-requested-with': 'XMLHttpRequest'
   })
-  const url = (wordType) => `https://cors-anywhere.herokuapp.com/https://randomwordgenerator.com/json/${wordType}s_ws.json`
+  const url = (wordType: string) => `https://cors-anywhere.herokuapp.com/https://randomwordgenerator.com/json/${wordType}s_ws.json`
 
   const chatName = await Promise.all([
-    fetch(url(adjective), {method: 'GET', headers: headers(adjective) }),
-    fetch(url(noun), {method: 'GET', headers: headers(noun) })
+    fetch(url(adjective), { method: 'GET', headers: headers(adjective) }),
+    fetch(url(noun), { method: 'GET', headers: headers(noun) })
   ]).then(async ([adjectivesRes, nounsRes]) => {
     const adjectives = JSON.parse(await adjectivesRes.text());
     const nouns = JSON.parse(await nounsRes.text());
 
     return adjectives.data[Math.floor(Math.random() * adjectives.data.length)].adjective.value
       + '-' + nouns.data[Math.floor(Math.random() * nouns.data.length)].noun.value
-  }).catch((e) => {
-      return uuidv4()
-    })
+  }).catch(() => {
+    return uuidv4()
+  })
 
-    return chatName
+  return chatName
 }
 
-const partyFromToken = (token) => {
+const partyFromToken = (token: string) => {
   try {
-    const decoded = jwt_decode(token);
+    const decoded = jwt_decode<any>(token);
     return decoded["https://daml.com/ledger-api"].actAs.shift()
-  } catch (e) {
+  } catch (e: any) {
     console.log(e.message || "failed to extract party from jwt token")
     return undefined;
   }
 }
 
+interface Props {
+}
 
-const INITIAL_STATE = {
+interface CurrentChatState {
+  chatName: string | null
+  currentChat: Chat | null
+  chatMembers: Party[]
+  messages: Message[]
+}
+
+interface State extends CurrentChatState {
+  partyId: string
+  token: string
+  partyName: string
+  showLogin: boolean
+  showWelcome: boolean
+  chatUser: User | null
+  chats: Chat[]
+  newMessage: string
+  aliases?: Aliases
+}
+
+const INITIAL_STATE: State = {
   partyId: '',
   token: '',
   partyName: '',
@@ -192,18 +215,23 @@ const INITIAL_STATE = {
   chats: [],
   chatMembers: [],
   chatName: null,
-  messages:[],
+  messages: [],
   newMessage: ''
 }
 
-class App extends Component {
-  constructor() {
-    super();
+
+class App extends Component<Props, State> {
+  chatManager!: ChatManager
+  timerId?: number
+  messageInput!: ReactTextareaAutocomplete<string>
+
+  constructor(props: Props) {
+    super(props);
     this.state = INITIAL_STATE;
     const tokenCookiePair = document.cookie.split('; ').find(row => row.startsWith('DAMLHUB_LEDGER_ACCESS_TOKEN')) || '';
     const tokenCookieSecret = tokenCookiePair.slice(tokenCookiePair.indexOf('=') + 1);
     const token = tokenCookieSecret || localStorage.getItem('party.token');
-    const partyId = partyFromToken(token) || localStorage.getItem('party.id');
+    const partyId = partyFromToken(token!) || localStorage.getItem('party.id');
 
     this.handleInput = this.handleInput.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
@@ -218,38 +246,45 @@ class App extends Component {
     this.stopPolling = this.stopPolling.bind(this);
 
     if (!!partyId && !!token) {
+      // @ts-ignore
       this.state.token = token;
+      // @ts-ignore
       this.state.partyId = partyId;
+      // @ts-ignore
       this.state.showLogin = false;
       this.createChatManager(partyId, token);
     }
   }
 
-  handleInput(event) {
+  handleInput(event: BaseSyntheticEvent) {
     const { value, name } = event.target;
 
-    this.setState({
-      [name]: value
-    })
+    // @ts-ignore
+    this.setState({ [name]: value })
   }
 
-  handleSubmit(event) {
+  handleSubmit(event: FormEvent) {
+    // @ts-ignore
     const { partyId, token } = event.target;
     event.preventDefault()
     this.createChatManager(partyId.value, token.value)
   }
 
-  handleAcceptInvitation(event) {
+  handleAcceptInvitation(event: BaseSyntheticEvent) {
     const { chatUser } = this.state;
+    if (!chatUser) {
+      return
+    }
+
     event.preventDefault();
     this.chatManager.acceptInvitation(chatUser)
-      .then(_ => {
-        this.setState({showWelcome: false});
+      .then((_: any) => {
+        this.setState({ showWelcome: false });
         this.startPolling();
       })
   }
 
-  handleLogout(event) {
+  handleLogout(event: BaseSyntheticEvent) {
     event.preventDefault();
     localStorage.removeItem("party.id");
     localStorage.removeItem("party.token");
@@ -266,22 +301,22 @@ class App extends Component {
       chats: [],
       chatMembers: [],
       chatName: null,
-      messages:[],
+      messages: [],
       newMessage: ''
     });
   }
 
-  async createChatManager(partyId, token) {
+  async createChatManager(partyId: Party, token: string) {
     try {
       this.chatManager = await ChatManager(partyId, token, this.updateUser, this.updateState)
       localStorage.setItem("party.id", partyId);
       localStorage.setItem("party.token", token);
-    } catch (e) {
+    } catch (e: any) {
       alert(e.message || 'Unable to connect to chat')
     }
   }
 
-  updateUser(user, onboarded) {
+  updateUser(user: User, onboarded: boolean) {
     this.setState({
       partyId: user.user,
       partyName: user.userName,
@@ -295,7 +330,7 @@ class App extends Component {
     }
   }
 
-  updateState(user, model, aliases) {
+  updateState(user: User, model: Chat[], aliases: Aliases) {
     const { currentChat, chats } = this.state;
 
     const updatedChat = currentChat && model.find(c => c.chatId === currentChat.chatId)
@@ -317,14 +352,14 @@ class App extends Component {
         hasNewMessage = false
       }
 
-      return {...c, hasNewMessage}
+      return { ...c, hasNewMessage }
     })
 
     this.setState({
       chatUser: user,
       chats: updatedChats,
       aliases: aliases,
-      ...this.updateCurrentChat(updatedChat)
+      ...this.updateCurrentChat(updatedChat || null)
     })
   }
 
@@ -336,7 +371,7 @@ class App extends Component {
     clearInterval(this.timerId);
   }
 
-  updateCurrentChat(chat) {
+  updateCurrentChat(chat: Chat | null): CurrentChatState {
     return {
       chatName: chat && chat.chatName,
       currentChat: chat,
@@ -345,27 +380,31 @@ class App extends Component {
     }
   }
 
-  handleSwitchToChat(chatId) {
+  handleSwitchToChat(chatId: string) {
     const { chats, currentChat } = this.state;
     var newChat = chats.find(chat => chat.chatId === chatId)
 
     if (newChat) {
       newChat.hasNewMessage = false;
+    } else {
+      return
     }
 
     if (!currentChat || newChat.chatId !== currentChat.chatId) {
       setTimeout(() => this.scrollToLatestMessages(), 100)
     }
 
-    this.setState({...this.updateCurrentChat(newChat), chats});
+    this.setState({ ...this.updateCurrentChat(newChat), chats });
     this.messageInput.setCaretPosition(this.messageInput.getCaretPosition());
   }
 
-  async handleSubmitMessage(event) {
+  async handleSubmitMessage(event: BaseSyntheticEvent) {
     event.preventDefault();
     const { newMessage, currentChat, chatUser, chats } = this.state
 
     if (newMessage.trim() === '') return;
+    if (!chatUser) return;
+    if (!currentChat) return;
 
     const match = /\/(\w+)((?:\s*)(.*))?/.exec(newMessage)
     const command = match ? match[1] : 'send'
@@ -380,7 +419,7 @@ class App extends Component {
         const nameTopic = words.filter(w => !w.startsWith("@"));
         members.push(chatUser.user);
 
-        const requestPrivatePromise = new Promise(async (resolve, _) => {
+        const requestPrivatePromise = new Promise<{ privateName: string, privateTopic: string }>(async (resolve, _) => {
           const privateName = nameTopic[0] || (await makeChatName());
           const privateTopic = nameTopic.length >= 2 ? nameTopic.slice(1).join(' ') : ''
           resolve({ privateName, privateTopic })
@@ -390,7 +429,7 @@ class App extends Component {
           this.chatManager.requestPrivateChat(chatUser, p.privateName, members, p.privateTopic))
         break;
       case 'pub':
-        const requestPublicPromise = new Promise(async (resolve, _) => {
+        const requestPublicPromise = new Promise<{ publicName: string, publicTopic: string }>(async (resolve, _) => {
           const publicName = words[0] || (await makeChatName());
           const publicTopic = words.length >= 2 ? words.slice(1).join(' ') : ''
           resolve({ publicName, publicTopic })
@@ -408,10 +447,10 @@ class App extends Component {
         if (!chat) return alert(`unknown chat id ${chatId}`)
         if (command === 'add') {
           this.chatManager.addMembersToChat(chatUser, chat, users)
-          .then(() => this.chatManager.fetchUpdate())
+            .then(() => this.chatManager.fetchUpdate())
         } else {  // remove
           this.chatManager.removeMembersFromChat(chatUser, chat, users)
-          .then(() => this.chatManager.fetchUpdate())
+            .then(() => this.chatManager.fetchUpdate())
         }
         break;
       case 'contact':
@@ -419,7 +458,7 @@ class App extends Component {
         if (contactParty.length === 0) return alert("a @user is required");
         if (contactParty.length > 1) return alert("exactly one @user is required");
         const contactName = words.filter(w => !w.startsWith("@"));
-        if (contactName.length === 0){
+        if (contactName.length === 0) {
           this.chatManager.removeFromAddressBook(chatUser, contactParty[0])
         } else {
           this.chatManager.upsertToAddressBook(chatUser, contactParty[0], contactName.join(' '))
@@ -450,7 +489,7 @@ class App extends Component {
         let proceed = window.confirm(`You are about to archive chat ${chatIdToArchive}. This action cannot be undone!`);
         if (proceed) {
           this.chatManager.archiveChat(chatToArchive)
-          .then(() => this.chatManager.fetchUpdate())
+            .then(() => this.chatManager.fetchUpdate())
         }
         break;
       case 'slack':
@@ -461,7 +500,7 @@ class App extends Component {
         this.chatManager.forwardToSlack(chatToForward, slackChannelId)
         break;
       case 'giphy':
-          fetch(`//api.giphy.com/v1/gifs/random?api_key=${GIPHY_TOKEN}&tag=${encodeURIComponent(content)}`)
+        fetch(`//api.giphy.com/v1/gifs/random?api_key=${GIPHY_TOKEN}&tag=${encodeURIComponent(content)}`)
           .then(async res => {
             const result = await res.json()
             const imageUrl = result.data.fixed_height_downsampled_url
@@ -470,7 +509,7 @@ class App extends Component {
           })
           .then(() => this.chatManager.fetchUpdate())
           .then(() => this.scrollToLatestMessages())
-          break;
+        break;
       case 'bot':
         if (!isValidBotCmd(words)) {
           alert("invalid bot command. required e.g. /bot [on/off] | [5s|m|h|d]")
@@ -479,14 +518,14 @@ class App extends Component {
         const action = words[0].toLowerCase()
         const allBots = await this.chatManager.getPublicAutomation().then(async res => {
           const bots = await res.json()
-          return bots.filter(en => en.artifactHash === publicBot.hash)
+          return bots.filter((en: any) => en.artifactHash === publicBot.hash)
         }
         )
 
         if (allBots.length === 0) {
           this.chatManager.archiveBotRequest(chatUser,
             publicBot.name,
-              false, `\`${publicBot.name}\` is not available.`)
+            false, `\`${publicBot.name}\` is not available.`)
           console.log(`public artifact: ${publicBot.hash} not found`)
           break;
         }
@@ -507,7 +546,7 @@ class App extends Component {
           default:
             const duration = action.slice(0, -1)
             const unit = action.substr(action.length - 1).toLowerCase()
-            this.chatManager.updateUserSettings(chatUser, {"time": duration, "unit": unit})
+            this.chatManager.updateUserSettings(chatUser, { "time": duration, "unit": unit })
             break;
         }
         break;
@@ -522,7 +561,7 @@ class App extends Component {
 
   }
 
-  handleMessageKeyDown(event) {
+  handleMessageKeyDown(event: KeyboardEvent) {
     if (event.keyCode !== 13) return;
     if (event.ctrlKey || event.shiftKey) return;
 
@@ -549,8 +588,8 @@ class App extends Component {
       chatMembers,
       messages,
       newMessage,
-      aliases,
     } = this.state;
+    const aliases = this.state.aliases || {};
 
     const isPublic = currentChat && currentChat.isPublic;
 
@@ -584,107 +623,110 @@ class App extends Component {
           ) : null}
           {currentChat ? (
             <ul className="chat-messages" id="chat-messages">
-              <ChatSession messages={messages} aliases={aliases}/>
+              <ChatSession messages={messages} aliases={aliases} />
               <div id="anchor"></div>
             </ul>
           ) : (
             <div className="no-chat-selected">
               <img className="chat-face-icon" src={chatFaceIcon} alt="app logo" />
               <h1>Welcome to Daml Chat</h1>
-                <span>An app written in  <a href="http://www.daml.com" target="_blank" rel="noopener noreferrer">Daml</a> and deployed using  <a href="https://hub.daml.com" target="_blank" rel="noopener noreferrer">Daml Hub</a></span>
-                <p>View source code on <a href="https://github.com/digital-asset/dablchat" target="_blank" rel="noopener noreferrer">GitHub</a></p>
-                <table>
-                  <tbody>
-                    <tr>
-                        <th>Commands:</th>
-                        <th></th>
-                    </tr>
-                    <tr>
-                        <td>Create a public chat with all existing members</td>
-                        <td><code>/pub [chat-name] [chat description]</code></td>
-                    </tr>
-                    <tr>
-                        <td>Private chat</td>
-                        <td><code>/dm @user... [chat-name] [chat description]</code></td>
-                    </tr>
-                    <tr>
-                        <td>Map a name to a user</td>
-                        <td><code>/contact [@user] [user's name]</code></td>
-                    </tr>
-                    <tr>
-                        <td>Publish your preferred name</td>
-                        <td><code>/self [name]</code></td>
-                    </tr>
-                    <tr>
-                        <td>Request a list of known users from the Operator</td>
-                        <td><code>/users</code></td>
-                    </tr>
-                    <tr>
-                        <td>Start/Stop an archiving bot to automatically archive your expired messages</td>
-                        <td><code>/bot [on/off] | [5s/m/h/d]</code></td>
-                    </tr>
-                    <tr>
-                        <th>If you create a chat, you can:</th>
-                        <th></th>
-                    </tr>
-                    <tr>
-                        <td>Add members</td>
-                        <td><code>/add @user...</code></td>
-                    </tr>
-                    <tr>
-                        <td>Remove members</td>
-                        <td><code>/remove @user...</code></td>
-                    </tr>
-                    <tr>
-                        <td>Rename the chat</td>
-                        <td><code>/rename [#chat-id] [new-name] [new description]</code></td>
-                    </tr>
-                    <tr>
-                        <td>Archive the chat</td>
-                        <td><code>/archive [#chat-id]</code></td>
-                    </tr>
-                    <tr>
-                        <td>Forward public chat messages to a Slack channel *</td>
-                        <td><code>/slack [#chat-id] [slackChannelId]</code></td>
-                    </tr>
-                    <tr>
-                        <td colSpan="2"><i>Anyone can add members to a public chat and you can remove yourself from any chat</i></td>
-                    </tr>
-                    <tr>
-                        <td colSpan="2"><i>* Requires running Slack Send Message integration</i></td>
-                    </tr>
-                    <tr>
-                        <th>Other:</th>
-                        <th></th>
-                    </tr>
-                    <tr>
-                        <td>Random GIF optionally related to tag</td>
-                        <td><code>/giphy [tag]</code></td>
-                    </tr>
-                    <tr>
-                        <td>Autocomplete User or Chat</td>
-                        <td><code>@user</code> &nbsp; <code>#chat</code></td>
-                    </tr>
-                    <tr>
-                        <td>Emojis</td>
-                        <td><code>:smile:</code> &nbsp; <span role="img" aria-label="smile">😄</span></td>
-                    </tr>
-                    <tr>
-                        <td>Text formatting</td>
-                        <td>**Bold** &nbsp; _Italic_ &nbsp; ~~strike~~ &nbsp; <code>`code`</code></td>
-                    </tr>
-                    <tr>
-                        <td>Fenced code block with syntax highlighting</td>
-                        <td><code>{`\`\`\`json { "DABL": "Chat" } \`\`\``}</code>
-                        </td>
-                    </tr>
-                  </tbody>
-                </table>
+              <span>An app written in  <a href="http://www.daml.com" target="_blank" rel="noopener noreferrer">Daml</a> and deployed using  <a href="https://hub.daml.com" target="_blank" rel="noopener noreferrer">Daml Hub</a></span>
+              <p>View source code on <a href="https://github.com/digital-asset/dablchat" target="_blank" rel="noopener noreferrer">GitHub</a></p>
+              <table>
+                <tbody>
+                  <tr>
+                    <th>Commands:</th>
+                    <th></th>
+                  </tr>
+                  <tr>
+                    <td>Create a public chat with all existing members</td>
+                    <td><code>/pub [chat-name] [chat description]</code></td>
+                  </tr>
+                  <tr>
+                    <td>Private chat</td>
+                    <td><code>/dm @user... [chat-name] [chat description]</code></td>
+                  </tr>
+                  <tr>
+                    <td>Map a name to a user</td>
+                    <td><code>/contact [@user] [user's name]</code></td>
+                  </tr>
+                  <tr>
+                    <td>Publish your preferred name</td>
+                    <td><code>/self [name]</code></td>
+                  </tr>
+                  <tr>
+                    <td>Request a list of known users from the Operator</td>
+                    <td><code>/users</code></td>
+                  </tr>
+                  <tr>
+                    <td>Start/Stop an archiving bot to automatically archive your expired messages</td>
+                    <td><code>/bot [on/off] | [5s/m/h/d]</code></td>
+                  </tr>
+                  <tr>
+                    <th>If you create a chat, you can:</th>
+                    <th></th>
+                  </tr>
+                  <tr>
+                    <td>Add members</td>
+                    <td><code>/add @user...</code></td>
+                  </tr>
+                  <tr>
+                    <td>Remove members</td>
+                    <td><code>/remove @user...</code></td>
+                  </tr>
+                  <tr>
+                    <td>Rename the chat</td>
+                    <td><code>/rename [#chat-id] [new-name] [new description]</code></td>
+                  </tr>
+                  <tr>
+                    <td>Archive the chat</td>
+                    <td><code>/archive [#chat-id]</code></td>
+                  </tr>
+                  <tr>
+                    <td>Forward public chat messages to a Slack channel *</td>
+                    <td><code>/slack [#chat-id] [slackChannelId]</code></td>
+                  </tr>
+                  <tr>
+                    <td colSpan={2}><i>Anyone can add members to a public chat and you can remove yourself from any chat</i></td>
+                  </tr>
+                  <tr>
+                    <td colSpan={2}><i>* Requires running Slack Send Message integration</i></td>
+                  </tr>
+                  <tr>
+                    <th>Other:</th>
+                    <th></th>
+                  </tr>
+                  <tr>
+                    <td>Random GIF optionally related to tag</td>
+                    <td><code>/giphy [tag]</code></td>
+                  </tr>
+                  <tr>
+                    <td>Autocomplete User or Chat</td>
+                    <td><code>@user</code> &nbsp; <code>#chat</code></td>
+                  </tr>
+                  <tr>
+                    <td>Emojis</td>
+                    <td><code>:smile:</code> &nbsp; <span role="img" aria-label="smile">😄</span></td>
+                  </tr>
+                  <tr>
+                    <td>Text formatting</td>
+                    <td>**Bold** &nbsp; _Italic_ &nbsp; ~~strike~~ &nbsp; <code>`code`</code></td>
+                  </tr>
+                  <tr>
+                    <td>Fenced code block with syntax highlighting</td>
+                    <td><code>{`\`\`\`json { "DABL": "Chat" } \`\`\``}</code>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>)}
           <footer className="chat-footer">
             <form className="message-form" autoComplete="off" onSubmit={this.handleSubmitMessage}>
               <ReactTextareaAutocomplete
-                ref={(input) => this.messageInput = input}
+                ref={(input) =>
+                  // @ts-ignore
+                  this.messageInput = input
+                }
                 className="message-input"
                 value={newMessage}
                 name="newMessage"
@@ -693,24 +735,24 @@ class App extends Component {
                 onKeyDown={this.handleMessageKeyDown}
                 trigger={{
                   "/": {
-                    dataProvider: token => { return commands.filter(({command, description}) => command.slice(1).startsWith(token.toLowerCase())) },
+                    dataProvider: token => { return commands.filter(({ command }) => command.slice(1).startsWith(token.toLowerCase())) },
                     component: CommandAutoCompleteItem,
-                    output: (item, trigger) => item.command.substr(0, item.command.indexOf(' '))
+                    output: (item: any) => item.command.substr(0, item.command.indexOf(' '))
                   },
                   "@": {
                     dataProvider: token => { return getAllKnownUsers(chats, aliases).filter(user => user.party.startsWith(token.toLowerCase()) || user.alias.toLowerCase().includes(token.toLowerCase())) },
                     component: UserAutoCompleteItem,
-                    output: (item, trigger) => `@${item.party}`
+                    output: (item: any) => `@${item.party}`
                   },
                   "#": {
-                    dataProvider: token => { return (chats && chats.filter(chat => chat.chatName.includes(token.toLowerCase()))) || [] },
+                    dataProvider: token => { return (chats && chats.filter(chat => chat.chatName && chat.chatName.includes(token.toLowerCase()))) || [] },
                     component: ChatAutoCompleteItem,
-                    output: (item, trigger) => `#${item.chatId}`
+                    output: (item: any) => `#${item.chatId}`
                   },
                   ":": {
-                    dataProvider: token => { return emojiIndex.search(token).slice(0, 5) || [] },
+                    dataProvider: token => { return SearchIndex.search(token).then(results => results.slice(0, 5)) },
                     component: EmojiAutoCompleteItem,
-                    output: (item, trigger) => item.native
+                    output: (item: any) => item.native
                   }
                 }}
                 loadingComponent={Loading}
@@ -728,16 +770,16 @@ class App extends Component {
           </div>
           {currentChat ? (
             <div className="chat-members-box">
-            <h4>creator:</h4>
-            <ChatMembers
-              chatMembers={[currentChat.chatCreator]}
-              aliases={aliases}
-            />
-            <h4>chat members:</h4>
-            <ChatMembers
-              chatMembers={chatMembers}
-              aliases={aliases}
-            /></div>
+              <h4>creator:</h4>
+              <ChatMembers
+                chatMembers={[currentChat.chatCreator]}
+                aliases={aliases}
+              />
+              <h4>chat members:</h4>
+              <ChatMembers
+                chatMembers={chatMembers}
+                aliases={aliases}
+              /></div>
           ) : null}
         </aside>
         {showLogin ? (

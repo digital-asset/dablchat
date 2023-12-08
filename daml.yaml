@@ -6,3 +6,8 @@ dependencies:
   - daml-prim
   - daml-stdlib
   - daml-script
+start-navigator: false
+codegen:
+  js:
+    output-directory: web/generated/daml.js
+    npm-scope: daml.js
