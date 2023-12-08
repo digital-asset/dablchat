@@ -1,59 +1,46 @@
-DIT_NAME=$(shell ddit targetname)
-BASENAME=$(shell ddit targetname --basename)
-VERSION=$(shell ddit ditversion)
-BOT_VERSION=$(shell ddit ditversion | sed "s/-rc./rc/")
+VERSION=4.0.0
 
-NAME=${BASENAME}-${VERSION}
+python := poetry run python
 
-PKG_FILES=$(shell find pkg -type f)
+pkg_dar := .daml/dist/daml-chat-$(VERSION).dar
+pkg_bot := dist/daml-chat-$(VERSION).tar.gz
+pkg_dit := daml-chat-$(VERSION).ddit
 
-PYTHON := pipenv run python
-
-operator_bot := target/daml-chat-operator-bot-$(BOT_VERSION).tar.gz
-user_bot := target/daml-chat-user-bot-$(BOT_VERSION).tar.gz
-ui := target/daml-chat-ui-$(VERSION).zip
-
-.PHONY: all package publish
-
+.PHONY: all
 all: package
-
-publish: package
-	ddit release
-
-package: ${DIT_NAME}
-
-${DIT_NAME}: target dit-meta.yaml ${PKG_FILES} $(operator_bot) $(user_bot) $(ui)
-	ddit build \
-	   --subdeployment $(operator_bot) $(user_bot) $(ui)
-
-target:
-	mkdir $@
-
-$(operator_bot):
-	cd python/operator && BOT_VERSION=$(BOT_VERSION) $(PYTHON) setup.py sdist
-	rm -fr python/operator/daml_chat_operator_bot.egg-info
-	mkdir -p $(@D)
-	mv python/operator/dist/daml-chat-operator-bot-$(BOT_VERSION).tar.gz $@
-	rm -r python/operator/dist
-
-$(user_bot):
-	cd python/user && BOT_VERSION=$(BOT_VERSION) $(PYTHON) setup.py sdist
-	rm -fr python/user/daml_chat_user_bot.egg-info
-	mkdir -p $(@D)
-	mv python/user/dist/daml-chat-user-bot-$(BOT_VERSION).tar.gz $@
-	rm -r python/user/dist
-
-$(ui): $(user_bot)
-	npm install
-	REACT_APP_ARCHIVE_BOT_HASH=$(shell sha256sum $(user_bot) | awk '{print $$1}') npm build
-	zip -r daml-chat-ui-$(VERSION).zip build
-	mkdir -p $(@D)
-	mv daml-chat-ui-$(VERSION).zip $@
-	rm -r build
 
 .PHONY: clean
 clean:
-	rm -fr \
-       python/operator/daml_chat_operator_bot.egg-info python/operator/dist \
-       python/user/daml_chat_user_bot.egg-info python/user/dist \
-       target *.tmp *.dit *.dar
+	rm -fr .daml dist
+
+.PHONY: format
+format:
+	$(python) isort python
+	$(python) black python
+
+.PHONY: build
+build: $(pkg_dar) $(pkg_bot)
+
+$(pkg_bot): pyproject.toml $(shell find python -name '*.py' -type f)
+	poetry build -f sdist
+
+$(pkg_dar): daml.yaml $(shell find daml -name '*.daml' -type f)
+	daml build
+
+.PHONY: package
+package: $(pkg_dit)
+$(pkg_dit): dit-meta.yaml $(pkg_bot) $(pkg_bot)
+	poetry run ddit build \
+	   --subdeployment $(pkg_bot) $(pkg_bot)
+
+# $(ui): $(user_bot)
+# 	npm install
+# 	REACT_APP_ARCHIVE_BOT_HASH=$(shell sha256sum $(user_bot) | awk '{print $$1}') npm build
+# 	zip -r daml-chat-ui-$(VERSION).zip build
+# 	mkdir -p $(@D)
+# 	mv daml-chat-ui-$(VERSION).zip $@
+# 	rm -r build
+
+.PHONY: publish
+publish: package
+	poetry run ddit release
