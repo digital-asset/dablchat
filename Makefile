@@ -14,9 +14,19 @@ clean:
 	rm -fr .daml dist
 
 .PHONY: format
-format:
-	$(python) isort python
-	$(python) black python
+format: .venv/poetry.lock
+	poetry run isort python
+	poetry run black python
+
+.PHONY: test
+test: .venv/poetry.lock
+	poetry run isort python --check-only
+	poetry run black python --check-only
+	daml test
+
+.venv/poetry.lock:
+	poetry install
+	cp poetry.lock "$@"
 
 .PHONY: build
 build: $(pkg_dar) $(pkg_bot)

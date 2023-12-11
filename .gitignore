@@ -32,11 +32,10 @@ yarn-error.log*
 *#
 *~
 
+__pycache__
 target/*
 web/generated
 
 # generated in-tree by build
-Pipfile
-
 daml-chat-*.dar
 daml-chat-*.dit
