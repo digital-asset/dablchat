@@ -10,17 +10,17 @@ dazl.setup_default_logger(logging.INFO)
 
 
 class Chat:
-    AliasesRequest = "Chat.V3:AliasesRequest"
-    Chat = "Chat.V3:Chat"
-    CreateChatRequest = "Chat.V3:CreateChatRequest"
-    ForwardToSlack = "Chat.V3:ForwardToSlack"
-    Message = "Chat.V3:Message"
-    Operator = "Chat.V3:Operator"
-    SelfAlias = "Chat.V3:SelfAlias"
-    User = "Chat.V3:User"
-    UserAccountRequest = "Chat.V3:UserAccountRequest"
-    ArchiveBotRequest = "Chat.V3:ArchiveBotRequest"
-    UserSettings = "Chat.V3:UserSettings"
+    AliasesRequest = "Chat.V4:AliasesRequest"
+    Chat = "Chat.V4:Chat"
+    CreateChatRequest = "Chat.V4:CreateChatRequest"
+    ForwardToSlack = "Chat.V4:ForwardToSlack"
+    Message = "Chat.V4:Message"
+    Operator = "Chat.V4:Operator"
+    SelfAlias = "Chat.V4:SelfAlias"
+    User = "Chat.V4:User"
+    UserAccountRequest = "Chat.V4:UserAccountRequest"
+    ArchiveBotRequest = "Chat.V4:ArchiveBotRequest"
+    UserSettings = "Chat.V4:UserSettings"
 
 
 class SlackIntegration:

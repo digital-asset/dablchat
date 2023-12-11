@@ -1,0 +1,20 @@
+module Chat.Setup where
+
+import Daml.Script
+
+data LedgerParties = LedgerParties with
+    operator : Party
+    public : Party
+
+initializeTestLedger : Script ()
+initializeTestLedger = do
+  userAdminParty <- allocateParty "UserAdmin"
+  userAdminUserId <- validateUserId "UserAdmin"
+  publicParty <- allocateParty "Public"
+  publicPartyUserId <- validateUserId "Public"
+
+  -- this mimics the way operator parties are already created on Daml Hub
+  _ <- createUser (User userAdminUserId (Some userAdminParty)) [CanActAs userAdminParty, CanReadAs publicParty]
+  _ <- createUser (User publicPartyUserId (Some publicParty)) [CanActAs publicParty]
+
+  pure ()
