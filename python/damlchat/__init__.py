@@ -1,3 +1,3 @@
 from .operator_bot import main
 
-main()
+__all__ = ["main"]

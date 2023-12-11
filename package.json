@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite dev web",
-    "build": "tsc && vite build web",
+    "dev": "daml build && daml codegen js && vite dev web",
+    "build": "daml build && daml codegen js && tsc && vite build web",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview web"
   },
