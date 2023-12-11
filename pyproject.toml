@@ -1,16 +1,22 @@
 [tool.poetry]
-name = "bot"
-version = "3.0.0"
+name = "daml-chat"
+version = "4.0.0"
 packages = [
-    { include = "bot", from = "python/operator" },
-    { include = "bot", from = "python/user" },
+    { include = "bot", from = "python" },
+    { include = "damlchat", from = "python" },
 ]
 description = "Dabl Chat"
+license = "Apache 2.0"
 authors = ["Daml Hub Team <no-reply@digitalasset.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = ">=3.8,<3.13"
+dazl = "^7.11.0"
+
+[tool.poetry.group.dev.dependencies]
+pyyaml = "^6.0.1"
+daml-dit-ddit = "^0.7.0"
 
 [build-system]
 requires = ["poetry-core"]
