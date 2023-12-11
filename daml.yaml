@@ -11,3 +11,4 @@ codegen:
   js:
     output-directory: web/generated/daml.js
     npm-scope: daml.js
+init-script: Chat.Setup:initializeTestLedger

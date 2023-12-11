@@ -2,7 +2,6 @@ VERSION=4.0.0
 
 python := poetry run python
 
-pkg_dar := .daml/dist/daml-chat-$(VERSION).dar
 pkg_bot := dist/daml-chat-$(VERSION).tar.gz
 pkg_dit := daml-chat-$(VERSION).ddit
 
@@ -29,13 +28,14 @@ test: .venv/poetry.lock
 	cp poetry.lock "$@"
 
 .PHONY: build
-build: $(pkg_dar) $(pkg_bot)
+build: $(pkg_bot)
 
 $(pkg_bot): pyproject.toml $(shell find python -name '*.py' -type f)
 	poetry build -f sdist
 
-$(pkg_dar): daml.yaml $(shell find daml -name '*.daml' -type f)
-	daml build
+.PHONY: run-ledger
+run-ledger:
+	daml start
 
 .PHONY: package
 package: $(pkg_dit)
