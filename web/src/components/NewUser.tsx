@@ -1,14 +1,19 @@
-import React from "react";
+import { EventHandler } from "react";
 import TERMS_AND_CONDITIONS from "../termsAndConditions";
 
-const NewUser = (props) => {
+interface Props {
+  partyName: string
+  handleAcceptInvitation: EventHandler<any>
+}
+
+const NewUser = (props: Props) => {
   const { partyName, handleAcceptInvitation } = props;
 
   return (
     <div className="login-container">
       <div className="login">
         <div className="login-form">
-          <h4 htmlFor="username">Hello {partyName},</h4>
+          <h4>Hello {partyName},</h4>
           <h4>Welcome to Daml Chat!</h4>
           <span>Please Accept the terms of service to continue</span>
           <div

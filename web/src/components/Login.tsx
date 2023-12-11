@@ -1,6 +1,14 @@
-import React from 'react';
+import * as React from "react"
 
-const Login = props => {
+interface Props {
+  partyId: string
+  handleSubmit: React.FormEventHandler
+  handleUserInput: React.ChangeEventHandler<HTMLInputElement>
+  handleTokenInput: React.ChangeEventHandler<HTMLInputElement>
+  token: string
+}
+
+const Login = (props: Props) => {
   const { partyId, handleSubmit, handleUserInput, handleTokenInput, token } = props;
 
   const showLoginWithDABL = window.location.hostname !== 'localhost';
@@ -14,14 +22,14 @@ const Login = props => {
           {showLoginWithDABL && (
             <>
               <a className="submit-btn dabl-login" href={loginUrl}>Log In with Daml Hub</a>
-              <label className="username-label" style={{"text-align": "center", "margin-top" : "10px"}} htmlFor="username">
+              <label className="username-label" htmlFor="username">
                 OR
               </label>
             </>)}
           <label className="username-label" htmlFor="username">
             Party
           </label>
-          <input className="username-input" type="text" id="username" name="partyId" value={partyId} onChange={handleUserInput} placeholder="Party ID"/>
+          <input className="username-input" type="text" id="username" name="partyId" value={partyId} onChange={handleUserInput} placeholder="Party ID" />
           <label className="username-label" htmlFor="username">
             Token
           </label>

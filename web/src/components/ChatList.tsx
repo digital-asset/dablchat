@@ -1,9 +1,15 @@
-import React from 'react';
 import lockIcon from '../icons/lock.svg'
 import publicIcon from '../icons/public.svg'
 
+import { Chat } from '../ChatManager';
 
-const ChatList = props => {
+interface Props {
+  chats: Chat[]
+  currentChat: { chatId: string } | null;
+  switchToChat(chatId: string): void
+}
+
+const ChatList = (props: Props) => {
   const {
     chats,
     currentChat,
@@ -32,9 +38,9 @@ const ChatList = props => {
   });
 
   return (
-      <div className="chats">
-        <ul className="chat-list">{chatList}</ul>
-      </div>
+    <div className="chats">
+      <ul className="chat-list">{chatList}</ul>
+    </div>
   );
 };
 
