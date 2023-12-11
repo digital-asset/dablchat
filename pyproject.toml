@@ -17,6 +17,8 @@ dazl = "^7.11.0"
 [tool.poetry.group.dev.dependencies]
 pyyaml = "^6.0.1"
 daml-dit-ddit = "^0.7.0"
+black = "^23.11.0"
+isort = "^5.13.0"
 
 [build-system]
 requires = ["poetry-core"]
