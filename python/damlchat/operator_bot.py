@@ -2,11 +2,10 @@ import logging
 import os
 import time
 import uuid
+from typing import Optional
 
 import dazl
-from dazl import create, exercise, exercise_by_key
-
-dazl.setup_default_logger(logging.INFO)
+from dazl import Party, connect, create, exercise, exercise_by_key
 
 
 class Chat:
@@ -27,10 +26,16 @@ class SlackIntegration:
     OutboundMessage = "SlackIntegration.OutboundMessage:OutboundMessage"
 
 
-def main():
-    url = os.getenv("DAML_LEDGER_URL")
-    party = os.getenv("DAML_LEDGER_PARTY")
-    public_party = os.getenv("DABL_PUBLIC_PARTY")
+async def main(url: str, party: Optional[Party], public_party: Optional[Party]) -> None:
+    # when running locally, prefer the User Management 2.x APIs instead
+    # TODO: Add support for Hub for at least read-only GetUser calls
+    if not party or not public_party:
+        async with connect(url=url, admin=True) as conn:
+            user_admin = await conn.get_user("UserAdmin")
+            party = user_admin.primary_party
+
+            public_user = await conn.get_user("Public")
+            public_party = public_user.primary_party
 
     network = dazl.Network()
     network.set_config(url=url)
@@ -231,7 +236,7 @@ def main():
         else:
             return client.submit_exercise(event.cid, "CreateChatRequest_Reject")
 
-    network.run_forever()
+    await network.aio_run()
 
 
 if __name__ == "__main__":
