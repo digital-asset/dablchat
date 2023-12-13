@@ -1,23 +1,20 @@
-import lockIcon from '../icons/lock.svg'
-import publicIcon from '../icons/public.svg'
+import lockIcon from "../icons/lock.svg";
+import publicIcon from "../icons/public.svg";
 
-import { Chat } from '../ChatManager';
+import { Chat } from "../ChatManager";
 
 interface Props {
-  chats: Chat[]
+  chats: Chat[];
   currentChat: { chatId: string } | null;
-  switchToChat(chatId: string): void
+  switchToChat(chatId: string): void;
 }
 
 const ChatList = (props: Props) => {
-  const {
-    chats,
-    currentChat,
-    switchToChat,
-  } = props;
+  const { chats, currentChat, switchToChat } = props;
 
-  const chatList = chats.map(chat => {
-    const activeStatus = currentChat && chat.chatId === currentChat.chatId ? 'active' : '';
+  const chatList = chats.map((chat) => {
+    const activeStatus =
+      currentChat && chat.chatId === currentChat.chatId ? "active" : "";
 
     return (
       <li
@@ -25,7 +22,8 @@ const ChatList = (props: Props) => {
         key={chat.chatId}
         onClick={() => switchToChat(chat.chatId)}
       >
-        <img className="chat-icon"
+        <img
+          className="chat-icon"
           src={chat.isPublic ? publicIcon : lockIcon}
           alt={chat.isPublic ? "public chat" : "private chat"}
         />
@@ -34,7 +32,7 @@ const ChatList = (props: Props) => {
           <span className="presence online"></span>
         ) : null}
       </li>
-    )
+    );
   });
 
   return (

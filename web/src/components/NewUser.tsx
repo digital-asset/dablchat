@@ -2,8 +2,8 @@ import { EventHandler } from "react";
 import TERMS_AND_CONDITIONS from "../termsAndConditions";
 
 interface Props {
-  partyName: string
-  handleAcceptInvitation: EventHandler<any>
+  partyName: string;
+  handleAcceptInvitation: EventHandler<any>;
 }
 
 const NewUser = (props: Props) => {

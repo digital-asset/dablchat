@@ -1,213 +1,213 @@
-import { BaseSyntheticEvent, Component, FormEvent, KeyboardEvent } from 'react';
-import ChatManager, { Aliases, Chat, Message, User } from './ChatManager'
-import Login from './components/Login';
-import NewUser from './components/NewUser';
-import ChatList from './components/ChatList';
-import ChatMembers from './components/ChatMembers';
-import { animateScroll } from 'react-scroll';
+import { BaseSyntheticEvent, Component, FormEvent, KeyboardEvent } from "react";
+import ChatManager, { Aliases, Chat, Message, User } from "./ChatManager";
+import Login from "./components/Login";
+import NewUser from "./components/NewUser";
+import ChatList from "./components/ChatList";
+import ChatMembers from "./components/ChatMembers";
+import { animateScroll } from "react-scroll";
 import ReactTextareaAutocomplete from "@webscopeio/react-textarea-autocomplete";
-import { SearchIndex } from 'emoji-mart'
-import logoutIcon from './icons/logout.svg'
-import chatFaceIcon from './icons/chatface.svg'
-import lockIcon from './icons/lock.svg'
-import publicIcon from './icons/public.svg'
-import userIcon from './icons/user.svg'
+import { SearchIndex } from "emoji-mart";
+import logoutIcon from "./icons/logout.svg";
+import chatFaceIcon from "./icons/chatface.svg";
+import lockIcon from "./icons/lock.svg";
+import publicIcon from "./icons/public.svg";
+import userIcon from "./icons/user.svg";
 import jwt_decode from "jwt-decode";
 
-import 'skeleton-css/css/normalize.css';
-import 'skeleton-css/css/skeleton.css';
+import "skeleton-css/css/normalize.css";
+import "skeleton-css/css/skeleton.css";
 import "@webscopeio/react-textarea-autocomplete/style.css";
-import './App.css';
-import ChatSession from './components/ChatSession';
-import { v4 as uuidv4 } from 'uuid';
+import "./App.css";
+import ChatSession from "./components/ChatSession";
+import { v4 as uuidv4 } from "uuid";
 
-import { Party } from '@daml/types';
+import { Party } from "@daml/types";
 
-const Loading = () => <div>Loading</div>
+const Loading = () => <div>Loading</div>;
 const CommandAutoCompleteItem = ({ entity }: { entity: any }) => {
   return (
     <div className="chat-header">
-      <img className="chat-icon"
-        src={chatFaceIcon}
-        alt="command"
-      />
+      <img className="chat-icon" src={chatFaceIcon} alt="command" />
       <div>{` ${entity.command} `}</div>
       <div className="autocomplete-description">{` ${entity.description}`}</div>
     </div>
-  )
+  );
 };
 
-const publicBot = { name: "AutoArchivingBot", hash: 'UNUSED' }
+const publicBot = { name: "AutoArchivingBot", hash: "UNUSED" };
 
 const commands = [
   {
     command: "/add @user... [#chat-id]",
-    description: "add user(s) to a chat. (If private, you must be the creator of the chat)"
+    description:
+      "add user(s) to a chat. (If private, you must be the creator of the chat)",
   },
   {
     command: "/remove @user... [#chat-id]",
-    description: "remove user(s) from a chat. (If not yourself, you must be the creator of the chat)"
+    description:
+      "remove user(s) from a chat. (If not yourself, you must be the creator of the chat)",
   },
   {
     command: "/pub [chat-name] [chat description]",
-    description: "create a public chat with all existing members"
+    description: "create a public chat with all existing members",
   },
   {
     command: "/dm @user... [chat-name] [chat description]",
-    description: "create a private chat between members"
+    description: "create a private chat between members",
   },
   {
     command: "/giphy [tag]",
-    description: "random GIF related to tag. Random GIF if no tag specified"
+    description: "random GIF related to tag. Random GIF if no tag specified",
   },
   {
     command: "/rename [#chat-id] [new-name] [new description]",
-    description: "rename a chat. (You must be the creator of the chat)"
+    description: "rename a chat. (You must be the creator of the chat)",
   },
   {
     command: "/contact @user [new name]",
-    description: "Map a name to a user, visible only to you. Empty name removes the mapping"
+    description:
+      "Map a name to a user, visible only to you. Empty name removes the mapping",
   },
   {
     command: "/self [name]",
-    description: "Publish your suggested name to all users, empty name removes the info"
+    description:
+      "Publish your suggested name to all users, empty name removes the info",
   },
   {
     command: "/users ",
-    description: "The operator will publish a list of known user names that you can then add to your contacts"
+    description:
+      "The operator will publish a list of known user names that you can then add to your contacts",
   },
   {
     command: "/archive [#chat-id]",
-    description: "archive a chat. (You must be the creator of the chat)"
+    description: "archive a chat. (You must be the creator of the chat)",
   },
   {
     command: "/slack [#chat-id] [slackChannelId]",
-    description: "Forward messages of a public chat to a slack channel. (Requires a running Slack Send Message integration and you must be the creator of the chat)"
+    description:
+      "Forward messages of a public chat to a slack channel. (Requires a running Slack Send Message integration and you must be the creator of the chat)",
   },
   {
     command: "/bot [on/off] | [5s|m|h|d]",
-    description: "Turning auto-archiving bot on or off or set retention period."
-  }
-]
+    description:
+      "Turning auto-archiving bot on or off or set retention period.",
+  },
+];
 
-const GIPHY_TOKEN = 'kDqbzOZtPvy38TLdqonPnpTPrsLfW8uy'
+const GIPHY_TOKEN = "kDqbzOZtPvy38TLdqonPnpTPrsLfW8uy";
 
 const getAllKnownUsers = (chats: Chat[], aliases: Aliases) => {
-  if (!chats) return []
-  const chatMembers = [...new Set(chats.flatMap(c => c.chatMembers))]
+  if (!chats) return [];
+  const chatMembers = [...new Set(chats.flatMap((c) => c.chatMembers))];
 
-  return chatMembers.map(m => ({ party: m, alias: (aliases[m] || "") }))
-}
+  return chatMembers.map((m) => ({ party: m, alias: aliases[m] || "" }));
+};
 
 const UserAutoCompleteItem = ({ entity }: { entity: any }) => {
   return (
     <div className="chat-header">
-      <img className="chat-icon"
-        src={userIcon}
-        alt={"user"}
-      />
-      <div>
-        {`️ ${entity.alias} @${entity.party}`}
-      </div>
+      <img className="chat-icon" src={userIcon} alt={"user"} />
+      <div>{`️ ${entity.alias} @${entity.party}`}</div>
     </div>
-  )
+  );
 };
 
 const ChatAutoCompleteItem = ({ entity }: { entity: any }) => {
   return (
     <div className="chat-header">
-      <img className="chat-icon"
+      <img
+        className="chat-icon"
         src={entity.isPublic ? publicIcon : lockIcon}
         alt={entity.isPublic ? "public chat" : "private chat"}
       />
-      <div>
-        {`️ ${entity.chatName} (#${entity.chatId})`}
-      </div>
+      <div>{`️ ${entity.chatName} (#${entity.chatId})`}</div>
       <div className="autocomplete-description">{entity.chatTopic}</div>
     </div>
-  )
+  );
 };
 
 const EmojiAutoCompleteItem = ({ entity }: { entity: any }) => {
-  return (
-    <div>{`️${entity.native} ${entity.colons}`}</div>
-  )
-}
+  return <div>{`️${entity.native} ${entity.colons}`}</div>;
+};
 
 function isValidBotCmd(words: string[]) {
-  if (words.length !== 1)
-    return false;
-  const action = words[0]
-  if (['on', 'off'].includes(action.toLowerCase()))
-    return true;
-  const duration: any = action.slice(0, -1)
-  const unit = action.substr(action.length - 1).toLowerCase()
-  return !isNaN(duration) && ['s', 'm', 'h', 'd'].includes(unit);
+  if (words.length !== 1) return false;
+  const action = words[0];
+  if (["on", "off"].includes(action.toLowerCase())) return true;
+  const duration: any = action.slice(0, -1);
+  const unit = action.substr(action.length - 1).toLowerCase();
+  return !isNaN(duration) && ["s", "m", "h", "d"].includes(unit);
 }
 
 async function makeChatName() {
-  const adjective = "adjective"
-  const noun = "noun"
+  const adjective = "adjective";
+  const noun = "noun";
 
   const headers = (wordType: string) => ({
-    "Referer": `https://randomwordgenerator.com/${wordType}.php`,
-    'Accept': 'application/json, text/javascript, */*; q=0.01',
-    'x-requested-with': 'XMLHttpRequest'
-  })
-  const url = (wordType: string) => `https://cors-anywhere.herokuapp.com/https://randomwordgenerator.com/json/${wordType}s_ws.json`
+    Referer: `https://randomwordgenerator.com/${wordType}.php`,
+    Accept: "application/json, text/javascript, */*; q=0.01",
+    "x-requested-with": "XMLHttpRequest",
+  });
+  const url = (wordType: string) =>
+    `https://cors-anywhere.herokuapp.com/https://randomwordgenerator.com/json/${wordType}s_ws.json`;
 
   const chatName = await Promise.all([
-    fetch(url(adjective), { method: 'GET', headers: headers(adjective) }),
-    fetch(url(noun), { method: 'GET', headers: headers(noun) })
-  ]).then(async ([adjectivesRes, nounsRes]) => {
-    const adjectives = JSON.parse(await adjectivesRes.text());
-    const nouns = JSON.parse(await nounsRes.text());
+    fetch(url(adjective), { method: "GET", headers: headers(adjective) }),
+    fetch(url(noun), { method: "GET", headers: headers(noun) }),
+  ])
+    .then(async ([adjectivesRes, nounsRes]) => {
+      const adjectives = JSON.parse(await adjectivesRes.text());
+      const nouns = JSON.parse(await nounsRes.text());
 
-    return adjectives.data[Math.floor(Math.random() * adjectives.data.length)].adjective.value
-      + '-' + nouns.data[Math.floor(Math.random() * nouns.data.length)].noun.value
-  }).catch(() => {
-    return uuidv4()
-  })
+      return (
+        adjectives.data[Math.floor(Math.random() * adjectives.data.length)]
+          .adjective.value +
+        "-" +
+        nouns.data[Math.floor(Math.random() * nouns.data.length)].noun.value
+      );
+    })
+    .catch(() => {
+      return uuidv4();
+    });
 
-  return chatName
+  return chatName;
 }
 
 const partyFromToken = (token: string) => {
   try {
     const decoded = jwt_decode<any>(token);
-    return decoded["https://daml.com/ledger-api"].actAs.shift()
+    return decoded["https://daml.com/ledger-api"].actAs.shift();
   } catch (e: any) {
-    console.log(e.message || "failed to extract party from jwt token")
+    console.log(e.message || "failed to extract party from jwt token");
     return undefined;
   }
-}
+};
 
-interface Props {
-}
+interface Props {}
 
 interface CurrentChatState {
-  chatName: string | null
-  currentChat: Chat | null
-  chatMembers: Party[]
-  messages: Message[]
+  chatName: string | null;
+  currentChat: Chat | null;
+  chatMembers: Party[];
+  messages: Message[];
 }
 
 interface State extends CurrentChatState {
-  partyId: string
-  token: string
-  partyName: string
-  showLogin: boolean
-  showWelcome: boolean
-  chatUser: User | null
-  chats: Chat[]
-  newMessage: string
-  aliases?: Aliases
+  partyId: string;
+  token: string;
+  partyName: string;
+  showLogin: boolean;
+  showWelcome: boolean;
+  chatUser: User | null;
+  chats: Chat[];
+  newMessage: string;
+  aliases?: Aliases;
 }
 
 const INITIAL_STATE: State = {
-  partyId: '',
-  token: '',
-  partyName: '',
+  partyId: "",
+  token: "",
+  partyName: "",
   showLogin: true,
   showWelcome: false,
   chatUser: null,
@@ -216,22 +216,26 @@ const INITIAL_STATE: State = {
   chatMembers: [],
   chatName: null,
   messages: [],
-  newMessage: ''
-}
-
+  newMessage: "",
+};
 
 class App extends Component<Props, State> {
-  chatManager!: ChatManager
-  timerId?: number
-  messageInput!: ReactTextareaAutocomplete<string>
+  chatManager!: ChatManager;
+  timerId?: number;
+  messageInput!: ReactTextareaAutocomplete<string>;
 
   constructor(props: Props) {
     super(props);
     this.state = INITIAL_STATE;
-    const tokenCookiePair = document.cookie.split('; ').find(row => row.startsWith('DAMLHUB_LEDGER_ACCESS_TOKEN')) || '';
-    const tokenCookieSecret = tokenCookiePair.slice(tokenCookiePair.indexOf('=') + 1);
-    const token = tokenCookieSecret || localStorage.getItem('party.token');
-    const partyId = partyFromToken(token!) || localStorage.getItem('party.id');
+    const tokenCookiePair =
+      document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("DAMLHUB_LEDGER_ACCESS_TOKEN")) || "";
+    const tokenCookieSecret = tokenCookiePair.slice(
+      tokenCookiePair.indexOf("=") + 1,
+    );
+    const token = tokenCookieSecret || localStorage.getItem("party.token");
+    const partyId = partyFromToken(token!) || localStorage.getItem("party.id");
 
     this.handleInput = this.handleInput.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
@@ -260,40 +264,39 @@ class App extends Component<Props, State> {
     const { value, name } = event.target;
 
     // @ts-ignore
-    this.setState({ [name]: value })
+    this.setState({ [name]: value });
   }
 
   handleSubmit(event: FormEvent) {
     // @ts-ignore
     const { partyId, token } = event.target;
-    event.preventDefault()
-    this.createChatManager(partyId.value, token.value)
+    event.preventDefault();
+    this.createChatManager(partyId.value, token.value);
   }
 
   handleAcceptInvitation(event: BaseSyntheticEvent) {
     const { chatUser } = this.state;
     if (!chatUser) {
-      return
+      return;
     }
 
     event.preventDefault();
-    this.chatManager.acceptInvitation(chatUser)
-      .then((_: any) => {
-        this.setState({ showWelcome: false });
-        this.startPolling();
-      })
+    this.chatManager.acceptInvitation(chatUser).then((_: any) => {
+      this.setState({ showWelcome: false });
+      this.startPolling();
+    });
   }
 
   handleLogout(event: BaseSyntheticEvent) {
     event.preventDefault();
     localStorage.removeItem("party.id");
     localStorage.removeItem("party.token");
-    localStorage.removeItem("operator.id")
+    localStorage.removeItem("operator.id");
     this.stopPolling();
     this.setState({
-      partyId: '',
-      token: '',
-      partyName: '',
+      partyId: "",
+      token: "",
+      partyName: "",
       showLogin: true,
       showWelcome: false,
       chatUser: null,
@@ -302,18 +305,23 @@ class App extends Component<Props, State> {
       chatMembers: [],
       chatName: null,
       messages: [],
-      newMessage: ''
+      newMessage: "",
     });
   }
 
   async createChatManager(partyId: Party, token: string) {
     try {
-      this.chatManager = await ChatManager(partyId, token, this.updateUser, this.updateState)
+      this.chatManager = await ChatManager(
+        partyId,
+        token,
+        this.updateUser,
+        this.updateState,
+      );
       localStorage.setItem("party.id", partyId);
       localStorage.setItem("party.token", token);
     } catch (e: any) {
       console.error(e);
-      alert(e.message || 'Unable to connect to chat')
+      alert(e.message || "Unable to connect to chat");
     }
   }
 
@@ -323,8 +331,8 @@ class App extends Component<Props, State> {
       partyName: user.userName,
       chatUser: user,
       showLogin: false,
-      showWelcome: !onboarded
-    })
+      showWelcome: !onboarded,
+    });
 
     if (onboarded) {
       this.startPolling();
@@ -334,66 +342,69 @@ class App extends Component<Props, State> {
   updateState(user: User, model: Chat[], aliases: Aliases) {
     const { currentChat, chats } = this.state;
 
-    const updatedChat = currentChat && model.find(c => c.chatId === currentChat.chatId)
+    const updatedChat =
+      currentChat && model.find((c) => c.chatId === currentChat.chatId);
 
-    const updatedChats = model.map(c => {
-      const prevChat = chats.find(chat => chat.chatId === c.chatId)
+    const updatedChats = model.map((c) => {
+      const prevChat = chats.find((chat) => chat.chatId === c.chatId);
       var hasNewMessage = (prevChat && prevChat.hasNewMessage) || false;
       if (prevChat) {
-        const lastPrevMessage = prevChat.chatMessages[prevChat.chatMessages.length - 1]
-        const lastPrevMessageTime = (lastPrevMessage && lastPrevMessage.postedAt) || "0"
-        const lastMessage = c.chatMessages[c.chatMessages.length - 1]
-        const lastMessageTime = (lastMessage && lastMessage.postedAt) || "0"
+        const lastPrevMessage =
+          prevChat.chatMessages[prevChat.chatMessages.length - 1];
+        const lastPrevMessageTime =
+          (lastPrevMessage && lastPrevMessage.postedAt) || "0";
+        const lastMessage = c.chatMessages[c.chatMessages.length - 1];
+        const lastMessageTime = (lastMessage && lastMessage.postedAt) || "0";
         if (lastMessageTime > lastPrevMessageTime) {
-          hasNewMessage = true
+          hasNewMessage = true;
         }
       }
 
       if (updatedChat && updatedChat.chatId === c.chatId) {
-        hasNewMessage = false
+        hasNewMessage = false;
       }
 
-      return { ...c, hasNewMessage }
-    })
+      return { ...c, hasNewMessage };
+    });
 
     this.setState({
       chatUser: user,
       chats: updatedChats,
       aliases: aliases,
-      ...this.updateCurrentChat(updatedChat || null)
-    })
+      ...this.updateCurrentChat(updatedChat || null),
+    });
   }
 
   startPolling = () => {
     // @ts-ignore
     this.timerId = setInterval(() => this.chatManager.fetchUpdate(), 2000);
-  }
+  };
 
   stopPolling = () => {
     clearInterval(this.timerId);
-  }
+  };
 
   updateCurrentChat(chat: Chat | null): CurrentChatState {
     return {
       chatName: chat && chat.chatName,
       currentChat: chat,
       chatMembers: (chat && chat.chatMembers) || [],
-      messages: (chat && chat.chatMessages) || []
-    }
+      messages: (chat && chat.chatMessages) || [],
+    };
   }
 
   handleSwitchToChat(chatId: string) {
     const { chats, currentChat } = this.state;
-    var newChat = chats.find(chat => chat.chatId === chatId)
+    var newChat = chats.find((chat) => chat.chatId === chatId);
 
     if (newChat) {
       newChat.hasNewMessage = false;
     } else {
-      return
+      return;
     }
 
     if (!currentChat || newChat.chatId !== currentChat.chatId) {
-      setTimeout(() => this.scrollToLatestMessages(), 100)
+      setTimeout(() => this.scrollToLatestMessages(), 100);
     }
 
     this.setState({ ...this.updateCurrentChat(newChat), chats });
@@ -402,180 +413,265 @@ class App extends Component<Props, State> {
 
   async handleSubmitMessage(event: BaseSyntheticEvent) {
     event.preventDefault();
-    const { newMessage, currentChat, chatUser, chats } = this.state
+    const { newMessage, currentChat, chatUser, chats } = this.state;
 
-    if (newMessage.trim() === '') return;
+    if (newMessage.trim() === "") return;
     if (!chatUser) return;
     if (!currentChat) return;
 
-    const match = /\/(\w+)((?:\s*)(.*))?/.exec(newMessage)
-    const command = match ? match[1] : 'send'
+    const match = /\/(\w+)((?:\s*)(.*))?/.exec(newMessage);
+    const command = match ? match[1] : "send";
     const content = (match ? match[3] : newMessage) || "";
 
     const words = (content && content.trim().split(" ")) || [];
 
     switch (command) {
-      case 'dm':
-        const members = words.filter(w => w.startsWith("@")).map(w => w.slice(1));
-        if (members.length === 0) return alert("at least one @user is required")
-        const nameTopic = words.filter(w => !w.startsWith("@"));
+      case "dm":
+        const members = words
+          .filter((w) => w.startsWith("@"))
+          .map((w) => w.slice(1));
+        if (members.length === 0)
+          return alert("at least one @user is required");
+        const nameTopic = words.filter((w) => !w.startsWith("@"));
         members.push(chatUser.user);
 
-        const requestPrivatePromise = new Promise<{ privateName: string, privateTopic: string }>(async (resolve, _) => {
+        const requestPrivatePromise = new Promise<{
+          privateName: string;
+          privateTopic: string;
+        }>(async (resolve, _) => {
           const privateName = nameTopic[0] || (await makeChatName());
-          const privateTopic = nameTopic.length >= 2 ? nameTopic.slice(1).join(' ') : ''
-          resolve({ privateName, privateTopic })
-        })
+          const privateTopic =
+            nameTopic.length >= 2 ? nameTopic.slice(1).join(" ") : "";
+          resolve({ privateName, privateTopic });
+        });
 
         requestPrivatePromise.then((p) =>
-          this.chatManager.requestPrivateChat(chatUser, p.privateName, members, p.privateTopic))
+          this.chatManager.requestPrivateChat(
+            chatUser,
+            p.privateName,
+            members,
+            p.privateTopic,
+          ),
+        );
         break;
-      case 'pub':
-        const requestPublicPromise = new Promise<{ publicName: string, publicTopic: string }>(async (resolve, _) => {
+      case "pub":
+        const requestPublicPromise = new Promise<{
+          publicName: string;
+          publicTopic: string;
+        }>(async (resolve, _) => {
           const publicName = words[0] || (await makeChatName());
-          const publicTopic = words.length >= 2 ? words.slice(1).join(' ') : ''
-          resolve({ publicName, publicTopic })
-        })
+          const publicTopic = words.length >= 2 ? words.slice(1).join(" ") : "";
+          resolve({ publicName, publicTopic });
+        });
 
         requestPublicPromise.then((p) =>
-          this.chatManager.requestPublicChat(chatUser, p.publicName, p.publicTopic))
+          this.chatManager.requestPublicChat(
+            chatUser,
+            p.publicName,
+            p.publicTopic,
+          ),
+        );
         break;
-      case 'add':
-      case 'remove':
-        const users = words.filter(w => w.startsWith("@")).map(w => w.slice(1));
-        if (users.length === 0) return alert("at least one @user is required")
-        const chatId = words.find(w => w.startsWith("#")) || (currentChat && `#${currentChat.chatId}`) || '';
-        const chat = chats.find(c => c.chatId === chatId.slice(1))
-        if (!chat) return alert(`unknown chat id ${chatId}`)
-        if (command === 'add') {
-          this.chatManager.addMembersToChat(chatUser, chat, users)
-            .then(() => this.chatManager.fetchUpdate())
-        } else {  // remove
-          this.chatManager.removeMembersFromChat(chatUser, chat, users)
-            .then(() => this.chatManager.fetchUpdate())
-        }
-        break;
-      case 'contact':
-        const contactParty = words.filter(w => w.startsWith("@")).map(w => w.slice(1));
-        if (contactParty.length === 0) return alert("a @user is required");
-        if (contactParty.length > 1) return alert("exactly one @user is required");
-        const contactName = words.filter(w => !w.startsWith("@"));
-        if (contactName.length === 0) {
-          this.chatManager.removeFromAddressBook(chatUser, contactParty[0])
+      case "add":
+      case "remove":
+        const users = words
+          .filter((w) => w.startsWith("@"))
+          .map((w) => w.slice(1));
+        if (users.length === 0) return alert("at least one @user is required");
+        const chatId =
+          words.find((w) => w.startsWith("#")) ||
+          (currentChat && `#${currentChat.chatId}`) ||
+          "";
+        const chat = chats.find((c) => c.chatId === chatId.slice(1));
+        if (!chat) return alert(`unknown chat id ${chatId}`);
+        if (command === "add") {
+          this.chatManager
+            .addMembersToChat(chatUser, chat, users)
+            .then(() => this.chatManager.fetchUpdate());
         } else {
-          this.chatManager.upsertToAddressBook(chatUser, contactParty[0], contactName.join(' '))
+          // remove
+          this.chatManager
+            .removeMembersFromChat(chatUser, chat, users)
+            .then(() => this.chatManager.fetchUpdate());
         }
         break;
-      case 'self':
-        this.chatManager.updateSelfAlias(chatUser, words.join(' '))
+      case "contact":
+        const contactParty = words
+          .filter((w) => w.startsWith("@"))
+          .map((w) => w.slice(1));
+        if (contactParty.length === 0) return alert("a @user is required");
+        if (contactParty.length > 1)
+          return alert("exactly one @user is required");
+        const contactName = words.filter((w) => !w.startsWith("@"));
+        if (contactName.length === 0) {
+          this.chatManager.removeFromAddressBook(chatUser, contactParty[0]);
+        } else {
+          this.chatManager.upsertToAddressBook(
+            chatUser,
+            contactParty[0],
+            contactName.join(" "),
+          );
+        }
         break;
-      case 'users':
-        this.chatManager.requestUserList(chatUser)
+      case "self":
+        this.chatManager.updateSelfAlias(chatUser, words.join(" "));
         break;
-      case 'rename':
-        const chatIdToRename = words.find(w => w.startsWith("#")) || (currentChat && `#${currentChat.chatId}`) || '';
-        const chatToRename = chats.find(c => c.chatId === chatIdToRename.slice(1))
-        if (!chatToRename) return alert(`unknown chat id ${chatIdToRename}`)
-        const newNameTopic = words.filter(w => !w.startsWith("#"));
+      case "users":
+        this.chatManager.requestUserList(chatUser);
+        break;
+      case "rename":
+        const chatIdToRename =
+          words.find((w) => w.startsWith("#")) ||
+          (currentChat && `#${currentChat.chatId}`) ||
+          "";
+        const chatToRename = chats.find(
+          (c) => c.chatId === chatIdToRename.slice(1),
+        );
+        if (!chatToRename) return alert(`unknown chat id ${chatIdToRename}`);
+        const newNameTopic = words.filter((w) => !w.startsWith("#"));
         const newName = newNameTopic[0] || (await makeChatName());
-        const newTopic = newNameTopic.length >= 2 ? newNameTopic.slice(1).join(' ') : ''
-        this.chatManager.renameChat(chatToRename, newName, newTopic)
+        const newTopic =
+          newNameTopic.length >= 2 ? newNameTopic.slice(1).join(" ") : "";
+        this.chatManager.renameChat(chatToRename, newName, newTopic);
         break;
-      case 'archive':
-        const chatIdToArchive = words.find(w => w.startsWith("#")) || (currentChat && `#${currentChat.chatId}`) || '';
-        const chatToArchive = chats.find(c => c.chatId === chatIdToArchive.slice(1))
-        if (!chatToArchive) return alert(`unknown chat id ${chatIdToArchive}`)
+      case "archive":
+        const chatIdToArchive =
+          words.find((w) => w.startsWith("#")) ||
+          (currentChat && `#${currentChat.chatId}`) ||
+          "";
+        const chatToArchive = chats.find(
+          (c) => c.chatId === chatIdToArchive.slice(1),
+        );
+        if (!chatToArchive) return alert(`unknown chat id ${chatIdToArchive}`);
         if (chatToArchive.chatCreator !== chatUser.user) {
-          return alert(`You must be the creator of chat ${chatIdToArchive} in order to archive it.`)
+          return alert(
+            `You must be the creator of chat ${chatIdToArchive} in order to archive it.`,
+          );
         }
-        let proceed = window.confirm(`You are about to archive chat ${chatIdToArchive}. This action cannot be undone!`);
+        let proceed = window.confirm(
+          `You are about to archive chat ${chatIdToArchive}. This action cannot be undone!`,
+        );
         if (proceed) {
-          this.chatManager.archiveChat(chatToArchive)
-            .then(() => this.chatManager.fetchUpdate())
+          this.chatManager
+            .archiveChat(chatToArchive)
+            .then(() => this.chatManager.fetchUpdate());
         }
         break;
-      case 'slack':
-        const chatIdToForward = words.find(w => w.startsWith("#")) || (currentChat && `#${currentChat.chatId}`) || '';
-        const chatToForward = chats.find(c => c.chatId === chatIdToForward.slice(1))
-        if (!chatToForward) return alert(`unknown chat id ${chatToForward}`)
-        const slackChannelId = words.filter(w => !w.startsWith("#")).join('');
-        this.chatManager.forwardToSlack(chatToForward, slackChannelId)
+      case "slack":
+        const chatIdToForward =
+          words.find((w) => w.startsWith("#")) ||
+          (currentChat && `#${currentChat.chatId}`) ||
+          "";
+        const chatToForward = chats.find(
+          (c) => c.chatId === chatIdToForward.slice(1),
+        );
+        if (!chatToForward) return alert(`unknown chat id ${chatToForward}`);
+        const slackChannelId = words.filter((w) => !w.startsWith("#")).join("");
+        this.chatManager.forwardToSlack(chatToForward, slackChannelId);
         break;
-      case 'giphy':
-        fetch(`//api.giphy.com/v1/gifs/random?api_key=${GIPHY_TOKEN}&tag=${encodeURIComponent(content)}`)
-          .then(async res => {
-            const result = await res.json()
-            const imageUrl = result.data.fixed_height_downsampled_url
-            const message = `![${content}](${imageUrl})`
-            this.chatManager.sendMessage(chatUser, currentChat, message)
+      case "giphy":
+        fetch(
+          `//api.giphy.com/v1/gifs/random?api_key=${GIPHY_TOKEN}&tag=${encodeURIComponent(
+            content,
+          )}`,
+        )
+          .then(async (res) => {
+            const result = await res.json();
+            const imageUrl = result.data.fixed_height_downsampled_url;
+            const message = `![${content}](${imageUrl})`;
+            this.chatManager.sendMessage(chatUser, currentChat, message);
           })
           .then(() => this.chatManager.fetchUpdate())
-          .then(() => this.scrollToLatestMessages())
+          .then(() => this.scrollToLatestMessages());
         break;
-      case 'bot':
+      case "bot":
         if (!isValidBotCmd(words)) {
-          alert("invalid bot command. required e.g. /bot [on/off] | [5s|m|h|d]")
+          alert(
+            "invalid bot command. required e.g. /bot [on/off] | [5s|m|h|d]",
+          );
           break;
         }
-        const action = words[0].toLowerCase()
-        const allBots = await this.chatManager.getPublicAutomation().then(async res => {
-          const bots = await res.json()
-          return bots.filter((en: any) => en.artifactHash === publicBot.hash)
-        }
-        )
+        const action = words[0].toLowerCase();
+        const allBots = await this.chatManager
+          .getPublicAutomation()
+          .then(async (res) => {
+            const bots = await res.json();
+            return bots.filter((en: any) => en.artifactHash === publicBot.hash);
+          });
 
         if (allBots.length === 0) {
-          this.chatManager.archiveBotRequest(chatUser,
+          this.chatManager.archiveBotRequest(
+            chatUser,
             publicBot.name,
-            false, `\`${publicBot.name}\` is not available.`)
-          console.log(`public artifact: ${publicBot.hash} not found`)
+            false,
+            `\`${publicBot.name}\` is not available.`,
+          );
+          console.log(`public artifact: ${publicBot.hash} not found`);
           break;
         }
-        const theBot = allBots[0]
+        const theBot = allBots[0];
         switch (action) {
-          case 'on':
-            this.chatManager.deployArchiveBot(theBot.owner, theBot.artifactHash)
+          case "on":
+            this.chatManager
+              .deployArchiveBot(theBot.owner, theBot.artifactHash)
               .then(() => {
-                this.chatManager.archiveBotRequest(chatUser, publicBot.name, true, null)
-              })
+                this.chatManager.archiveBotRequest(
+                  chatUser,
+                  publicBot.name,
+                  true,
+                  null,
+                );
+              });
             break;
-          case 'off':
-            this.chatManager.undeployArchiveBot(theBot.artifactHash)
+          case "off":
+            this.chatManager
+              .undeployArchiveBot(theBot.artifactHash)
               .then(() => {
-                this.chatManager.archiveBotRequest(chatUser, publicBot.name, false, null)
-              })
+                this.chatManager.archiveBotRequest(
+                  chatUser,
+                  publicBot.name,
+                  false,
+                  null,
+                );
+              });
             break;
           default:
-            const duration = action.slice(0, -1)
-            const unit = action.substr(action.length - 1).toLowerCase()
-            this.chatManager.updateUserSettings(chatUser, { "time": duration, "unit": unit })
+            const duration = action.slice(0, -1);
+            const unit = action.substr(action.length - 1).toLowerCase();
+            this.chatManager.updateUserSettings(chatUser, {
+              time: duration,
+              unit: unit,
+            });
             break;
         }
         break;
       default:
-        if (!currentChat) return alert("Only commands work on this page, you must be in a chat to send a message")
-        this.chatManager.sendMessage(chatUser, currentChat, newMessage)
+        if (!currentChat)
+          return alert(
+            "Only commands work on this page, you must be in a chat to send a message",
+          );
+        this.chatManager
+          .sendMessage(chatUser, currentChat, newMessage)
           .then(() => this.chatManager.fetchUpdate())
-          .then(() => this.scrollToLatestMessages())
+          .then(() => this.scrollToLatestMessages());
     }
 
-    this.setState({ newMessage: '' })
-
+    this.setState({ newMessage: "" });
   }
 
   handleMessageKeyDown(event: KeyboardEvent) {
     if (event.keyCode !== 13) return;
     if (event.ctrlKey || event.shiftKey) return;
 
-    event.preventDefault()
-    this.handleSubmitMessage(event)
+    event.preventDefault();
+    this.handleSubmitMessage(event);
   }
 
   scrollToLatestMessages() {
     animateScroll.scrollToBottom({
-      containerId: 'chat-messages',
-      duration: 100
-    })
+      containerId: "chat-messages",
+      duration: 100,
+    });
   }
 
   render() {
@@ -599,23 +695,29 @@ class App extends Component<Props, State> {
       <div className="App">
         <aside className="sidebar left-sidebar">
           {partyName ? (
-            <div className="user-profile" onClick={() => this.setState(this.updateCurrentChat(null))}>
+            <div
+              className="user-profile"
+              onClick={() => this.setState(this.updateCurrentChat(null))}
+            >
               <span className="username">{partyName}</span>
             </div>
           ) : null}
-          {!!chats ? (<div className="channels-box">
-            <h4>Chat Topics:</h4>
-            <ChatList
-              chats={chats}
-              currentChat={currentChat}
-              switchToChat={this.handleSwitchToChat}
-            /></div>
+          {!!chats ? (
+            <div className="channels-box">
+              <h4>Chat Topics:</h4>
+              <ChatList
+                chats={chats}
+                currentChat={currentChat}
+                switchToChat={this.handleSwitchToChat}
+              />
+            </div>
           ) : null}
         </aside>
         <section className="chat-screen">
           {currentChat ? (
             <header className="chat-header">
-              <img className="chat-header-icon"
+              <img
+                className="chat-header-icon"
                 src={isPublic ? publicIcon : lockIcon}
                 alt={isPublic ? "public chat" : "private chat"}
               />
@@ -630,10 +732,40 @@ class App extends Component<Props, State> {
             </ul>
           ) : (
             <div className="no-chat-selected">
-              <img className="chat-face-icon" src={chatFaceIcon} alt="app logo" />
+              <img
+                className="chat-face-icon"
+                src={chatFaceIcon}
+                alt="app logo"
+              />
               <h1>Welcome to Daml Chat</h1>
-              <span>An app written in  <a href="http://www.daml.com" target="_blank" rel="noopener noreferrer">Daml</a> and deployed using  <a href="https://hub.daml.com" target="_blank" rel="noopener noreferrer">Daml Hub</a></span>
-              <p>View source code on <a href="https://github.com/digital-asset/dablchat" target="_blank" rel="noopener noreferrer">GitHub</a></p>
+              <span>
+                An app written in{" "}
+                <a
+                  href="http://www.daml.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Daml
+                </a>{" "}
+                and deployed using{" "}
+                <a
+                  href="https://hub.daml.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Daml Hub
+                </a>
+              </span>
+              <p>
+                View source code on{" "}
+                <a
+                  href="https://github.com/digital-asset/dablchat"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  GitHub
+                </a>
+              </p>
               <table>
                 <tbody>
                   <tr>
@@ -642,27 +774,42 @@ class App extends Component<Props, State> {
                   </tr>
                   <tr>
                     <td>Create a public chat with all existing members</td>
-                    <td><code>/pub [chat-name] [chat description]</code></td>
+                    <td>
+                      <code>/pub [chat-name] [chat description]</code>
+                    </td>
                   </tr>
                   <tr>
                     <td>Private chat</td>
-                    <td><code>/dm @user... [chat-name] [chat description]</code></td>
+                    <td>
+                      <code>/dm @user... [chat-name] [chat description]</code>
+                    </td>
                   </tr>
                   <tr>
                     <td>Map a name to a user</td>
-                    <td><code>/contact [@user] [user's name]</code></td>
+                    <td>
+                      <code>/contact [@user] [user's name]</code>
+                    </td>
                   </tr>
                   <tr>
                     <td>Publish your preferred name</td>
-                    <td><code>/self [name]</code></td>
+                    <td>
+                      <code>/self [name]</code>
+                    </td>
                   </tr>
                   <tr>
                     <td>Request a list of known users from the Operator</td>
-                    <td><code>/users</code></td>
+                    <td>
+                      <code>/users</code>
+                    </td>
                   </tr>
                   <tr>
-                    <td>Start/Stop an archiving bot to automatically archive your expired messages</td>
-                    <td><code>/bot [on/off] | [5s/m/h/d]</code></td>
+                    <td>
+                      Start/Stop an archiving bot to automatically archive your
+                      expired messages
+                    </td>
+                    <td>
+                      <code>/bot [on/off] | [5s/m/h/d]</code>
+                    </td>
                   </tr>
                   <tr>
                     <th>If you create a chat, you can:</th>
@@ -670,29 +817,48 @@ class App extends Component<Props, State> {
                   </tr>
                   <tr>
                     <td>Add members</td>
-                    <td><code>/add @user...</code></td>
+                    <td>
+                      <code>/add @user...</code>
+                    </td>
                   </tr>
                   <tr>
                     <td>Remove members</td>
-                    <td><code>/remove @user...</code></td>
+                    <td>
+                      <code>/remove @user...</code>
+                    </td>
                   </tr>
                   <tr>
                     <td>Rename the chat</td>
-                    <td><code>/rename [#chat-id] [new-name] [new description]</code></td>
+                    <td>
+                      <code>
+                        /rename [#chat-id] [new-name] [new description]
+                      </code>
+                    </td>
                   </tr>
                   <tr>
                     <td>Archive the chat</td>
-                    <td><code>/archive [#chat-id]</code></td>
+                    <td>
+                      <code>/archive [#chat-id]</code>
+                    </td>
                   </tr>
                   <tr>
                     <td>Forward public chat messages to a Slack channel *</td>
-                    <td><code>/slack [#chat-id] [slackChannelId]</code></td>
+                    <td>
+                      <code>/slack [#chat-id] [slackChannelId]</code>
+                    </td>
                   </tr>
                   <tr>
-                    <td colSpan={2}><i>Anyone can add members to a public chat and you can remove yourself from any chat</i></td>
+                    <td colSpan={2}>
+                      <i>
+                        Anyone can add members to a public chat and you can
+                        remove yourself from any chat
+                      </i>
+                    </td>
                   </tr>
                   <tr>
-                    <td colSpan={2}><i>* Requires running Slack Send Message integration</i></td>
+                    <td colSpan={2}>
+                      <i>* Requires running Slack Send Message integration</i>
+                    </td>
                   </tr>
                   <tr>
                     <th>Other:</th>
@@ -700,34 +866,52 @@ class App extends Component<Props, State> {
                   </tr>
                   <tr>
                     <td>Random GIF optionally related to tag</td>
-                    <td><code>/giphy [tag]</code></td>
+                    <td>
+                      <code>/giphy [tag]</code>
+                    </td>
                   </tr>
                   <tr>
                     <td>Autocomplete User or Chat</td>
-                    <td><code>@user</code> &nbsp; <code>#chat</code></td>
+                    <td>
+                      <code>@user</code> &nbsp; <code>#chat</code>
+                    </td>
                   </tr>
                   <tr>
                     <td>Emojis</td>
-                    <td><code>:smile:</code> &nbsp; <span role="img" aria-label="smile">😄</span></td>
+                    <td>
+                      <code>:smile:</code> &nbsp;{" "}
+                      <span role="img" aria-label="smile">
+                        😄
+                      </span>
+                    </td>
                   </tr>
                   <tr>
                     <td>Text formatting</td>
-                    <td>**Bold** &nbsp; _Italic_ &nbsp; ~~strike~~ &nbsp; <code>`code`</code></td>
+                    <td>
+                      **Bold** &nbsp; _Italic_ &nbsp; ~~strike~~ &nbsp;{" "}
+                      <code>`code`</code>
+                    </td>
                   </tr>
                   <tr>
                     <td>Fenced code block with syntax highlighting</td>
-                    <td><code>{`\`\`\`json { "DABL": "Chat" } \`\`\``}</code>
+                    <td>
+                      <code>{`\`\`\`json { "DABL": "Chat" } \`\`\``}</code>
                     </td>
                   </tr>
                 </tbody>
               </table>
-            </div>)}
+            </div>
+          )}
           <footer className="chat-footer">
-            <form className="message-form" autoComplete="off" onSubmit={this.handleSubmitMessage}>
+            <form
+              className="message-form"
+              autoComplete="off"
+              onSubmit={this.handleSubmitMessage}
+            >
               <ReactTextareaAutocomplete
                 ref={(input) =>
                   // @ts-ignore
-                  this.messageInput = input
+                  (this.messageInput = input)
                 }
                 className="message-input"
                 value={newMessage}
@@ -737,25 +921,52 @@ class App extends Component<Props, State> {
                 onKeyDown={this.handleMessageKeyDown}
                 trigger={{
                   "/": {
-                    dataProvider: token => { return commands.filter(({ command }) => command.slice(1).startsWith(token.toLowerCase())) },
+                    dataProvider: (token) => {
+                      return commands.filter(({ command }) =>
+                        command.slice(1).startsWith(token.toLowerCase()),
+                      );
+                    },
                     component: CommandAutoCompleteItem,
-                    output: (item: any) => item.command.substr(0, item.command.indexOf(' '))
+                    output: (item: any) =>
+                      item.command.substr(0, item.command.indexOf(" ")),
                   },
                   "@": {
-                    dataProvider: token => { return getAllKnownUsers(chats, aliases).filter(user => user.party.startsWith(token.toLowerCase()) || user.alias.toLowerCase().includes(token.toLowerCase())) },
+                    dataProvider: (token) => {
+                      return getAllKnownUsers(chats, aliases).filter(
+                        (user) =>
+                          user.party.startsWith(token.toLowerCase()) ||
+                          user.alias
+                            .toLowerCase()
+                            .includes(token.toLowerCase()),
+                      );
+                    },
                     component: UserAutoCompleteItem,
-                    output: (item: any) => `@${item.party}`
+                    output: (item: any) => `@${item.party}`,
                   },
                   "#": {
-                    dataProvider: token => { return (chats && chats.filter(chat => chat.chatName && chat.chatName.includes(token.toLowerCase()))) || [] },
+                    dataProvider: (token) => {
+                      return (
+                        (chats &&
+                          chats.filter(
+                            (chat) =>
+                              chat.chatName &&
+                              chat.chatName.includes(token.toLowerCase()),
+                          )) ||
+                        []
+                      );
+                    },
                     component: ChatAutoCompleteItem,
-                    output: (item: any) => `#${item.chatId}`
+                    output: (item: any) => `#${item.chatId}`,
                   },
                   ":": {
-                    dataProvider: token => { return SearchIndex.search(token).then(results => results.slice(0, 5)) },
+                    dataProvider: (token) => {
+                      return SearchIndex.search(token).then((results) =>
+                        results.slice(0, 5),
+                      );
+                    },
                     component: EmojiAutoCompleteItem,
-                    output: (item: any) => item.native
-                  }
+                    output: (item: any) => item.native,
+                  },
                 }}
                 loadingComponent={Loading}
                 resize="none"
@@ -778,10 +989,8 @@ class App extends Component<Props, State> {
                 aliases={aliases}
               />
               <h4>chat members:</h4>
-              <ChatMembers
-                chatMembers={chatMembers}
-                aliases={aliases}
-              /></div>
+              <ChatMembers chatMembers={chatMembers} aliases={aliases} />
+            </div>
           ) : null}
         </aside>
         {showLogin ? (
