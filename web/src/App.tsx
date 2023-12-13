@@ -571,6 +571,7 @@ class App extends Component<Props, State> {
         this.chatManager.forwardToSlack(chatToForward, slackChannelId);
         break;
       case "giphy":
+        if (!currentChat) return;
         fetch(
           `//api.giphy.com/v1/gifs/random?api_key=${GIPHY_TOKEN}&tag=${encodeURIComponent(
             content,
