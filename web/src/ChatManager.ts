@@ -1,5 +1,6 @@
 import { ContractId, Party } from "@daml/types";
 import * as V4 from "@daml.js/daml-chat/lib/Chat/V4";
+import Ledger from "@daml/ledger";
 
 export interface Chat {
   contractId: ContractId<V4.Chat>;
@@ -129,6 +130,8 @@ async function ChatManager(
   updateUser: (user: User, onboarded: boolean) => void,
   updateState: (user: User, model: Chat[], aliases: Aliases) => void,
 ): Promise<ChatManager> {
+  const ledger = new Ledger({ token });
+
   const headers = {
     Authorization: `Bearer ${token.toString()}`,
     "Content-Type": "application/json",
@@ -175,15 +178,10 @@ async function ChatManager(
     operator: string,
     userName: string,
   ) => {
-    return post("/v1/create", {
-      body: JSON.stringify({
-        templateId: V4.UserAccountRequest.templateId,
-        payload: {
-          operator,
-          user: party,
-          userName,
-        },
-      }),
+    await ledger.create(V4.UserAccountRequest, {
+      operator,
+      user: party,
+      userName,
     });
   };
 
@@ -212,20 +210,7 @@ async function ChatManager(
   };
 
   const userName = parseUserName(token);
-  const createUserAccountRequestResponse = await createUserAccountRequest(
-    operatorId,
-    userName,
-  );
-
-  switch (createUserAccountRequestResponse.status) {
-    case 401:
-      throw new Error("Authentication failed");
-    case 404:
-      throw new Error("HTTP JSON failed");
-    case 500:
-      throw new Error("Internal Server Error");
-    default:
-  }
+  await createUserAccountRequest(operatorId, userName);
 
   try {
     // Make MAX_ATTEMPTS to fetch the user or their invitation
@@ -402,47 +387,30 @@ async function ChatManager(
     enabled: boolean,
     message: string,
   ) => {
-    await post("/v1/exercise", {
-      body: JSON.stringify({
-        templateId: V4.User.templateId,
-        contractId: user.contractId,
-        choice: "User_RequestArchiveBot",
-        argument: {
-          botName: botName,
-          enabled: enabled,
-          message: message,
-        },
-      }),
+    await ledger.exercise(V4.User.User_RequestArchiveBot, user.contractId, {
+      botName,
+      enabled,
+      message,
     });
   };
 
   const updateUserSettings = async (
     user: { contractId: ContractId<V4.User> },
-    timedelta: V4.Duration,
+    newArchiveMessagesAfter: V4.Duration,
   ) => {
-    await post("/v1/exercise", {
-      body: JSON.stringify({
-        templateId: V4.User.templateId,
-        contractId: user.contractId,
-        choice: "User_UpdateUserSettings",
-        argument: {
-          newArchiveMessagesAfter: timedelta,
-        },
-      }),
+    await ledger.exercise(V4.User.User_UpdateUserSettings, user.contractId, {
+      newArchiveMessagesAfter,
     });
   };
 
   const acceptInvitation = async (userInvitation: {
     contractId: ContractId<V4.UserInvitation>;
   }) => {
-    await post("/v1/exercise", {
-      body: JSON.stringify({
-        templateId: V4.UserInvitation.templateId,
-        contractId: userInvitation.contractId,
-        choice: "UserInvitation_Accept",
-        argument: {},
-      }),
-    });
+    await ledger.exercise(
+      V4.UserInvitation.UserInvitation_Accept,
+      userInvitation.contractId,
+      {},
+    );
   };
 
   const sendMessage = async (
@@ -452,17 +420,10 @@ async function ChatManager(
   ) => {
     const d = new Date();
     const seconds = Math.round(d.getTime() / 1000);
-    await post("/v1/exercise", {
-      body: JSON.stringify({
-        templateId: V4.Chat.templateId,
-        contractId: chat.contractId,
-        choice: "Chat_PostMessage",
-        argument: {
-          poster: user.user,
-          message: message,
-          postedAt: seconds,
-        },
-      }),
+    await ledger.exercise(V4.Chat.Chat_PostMessage, chat.contractId, {
+      poster: user.user,
+      message,
+      postedAt: seconds.toString(),
     });
   };
 
@@ -472,17 +433,10 @@ async function ChatManager(
     members: Party[],
     topic: string,
   ) => {
-    await post("/v1/exercise", {
-      body: JSON.stringify({
-        templateId: V4.User.templateId,
-        contractId: user.contractId,
-        choice: "User_RequestPrivateChat",
-        argument: {
-          name: name,
-          members: members,
-          topic: topic,
-        },
-      }),
+    await ledger.exercise(V4.User.User_RequestPrivateChat, user.contractId, {
+      name,
+      members,
+      topic,
     });
   };
 
@@ -491,16 +445,9 @@ async function ChatManager(
     name: string,
     topic: string,
   ) => {
-    await post("/v1/exercise", {
-      body: JSON.stringify({
-        templateId: V4.User.templateId,
-        contractId: user.contractId,
-        choice: "User_RequestPublicChat",
-        argument: {
-          name: name,
-          topic: topic,
-        },
-      }),
+    await ledger.exercise(V4.User.User_RequestPublicChat, user.contractId, {
+      name,
+      topic,
     });
   };
 
@@ -509,16 +456,9 @@ async function ChatManager(
     chat: { contractId: ContractId<V4.Chat> },
     newMembers: Party[],
   ) => {
-    await post("/v1/exercise", {
-      body: JSON.stringify({
-        templateId: V4.Chat.templateId,
-        contractId: chat.contractId,
-        choice: "Chat_AddMembers",
-        argument: {
-          member: user.user,
-          newMembers: newMembers,
-        },
-      }),
+    await ledger.exercise(V4.Chat.Chat_AddMembers, chat.contractId, {
+      member: user.user,
+      newMembers: newMembers,
     });
   };
 
@@ -527,16 +467,9 @@ async function ChatManager(
     chat: { contractId: ContractId<V4.Chat> },
     membersToRemove: Party[],
   ) => {
-    await post("/v1/exercise", {
-      body: JSON.stringify({
-        templateId: V4.Chat.templateId,
-        contractId: chat.contractId,
-        choice: "Chat_RemoveMembers",
-        argument: {
-          member: user.user,
-          membersToRemove: membersToRemove,
-        },
-      }),
+    await ledger.exercise(V4.Chat.Chat_RemoveMembers, chat.contractId, {
+      member: user.user,
+      membersToRemove: membersToRemove,
     });
   };
 
@@ -544,15 +477,8 @@ async function ChatManager(
     user: { contractId: ContractId<V4.User> },
     alias: string,
   ) => {
-    await post("/v1/exercise", {
-      body: JSON.stringify({
-        templateId: V4.User.templateId,
-        contractId: user.contractId,
-        choice: "User_UpdateSelfAlias",
-        argument: {
-          alias,
-        },
-      }),
+    await ledger.exercise(V4.User.User_UpdateSelfAlias, user.contractId, {
+      alias,
     });
   };
 
@@ -561,16 +487,9 @@ async function ChatManager(
     party: Party,
     name: string,
   ) => {
-    await post("/v1/exercise", {
-      body: JSON.stringify({
-        templateId: V4.AddressBook.templateId,
-        key: user.user,
-        choice: "AddressBook_Add",
-        argument: {
-          party,
-          name,
-        },
-      }),
+    await ledger.exerciseByKey(V4.AddressBook.AddressBook_Add, user.user, {
+      party,
+      name,
     });
   };
 
@@ -578,27 +497,13 @@ async function ChatManager(
     user: { user: V4.AddressBook.Key },
     party: Party,
   ) => {
-    await post("/v1/exercise", {
-      body: JSON.stringify({
-        templateId: V4.AddressBook.templateId,
-        key: user.user,
-        choice: "AddressBook_Remove",
-        argument: {
-          party,
-        },
-      }),
+    await ledger.exerciseByKey(V4.AddressBook.AddressBook_Remove, user.user, {
+      party,
     });
   };
 
   const requestUserList = async (user: { contractId: ContractId<V4.User> }) => {
-    await post("/v1/exercise", {
-      body: JSON.stringify({
-        templateId: V4.User.templateId,
-        contractId: user.contractId,
-        choice: "User_RequestAliases",
-        argument: {},
-      }),
-    });
+    await ledger.exercise(V4.User.User_RequestAliases, user.contractId, {});
   };
 
   const renameChat = async (
@@ -606,43 +511,22 @@ async function ChatManager(
     newName: string,
     newTopic: string,
   ) => {
-    await post("/v1/exercise", {
-      body: JSON.stringify({
-        templateId: V4.Chat.templateId,
-        contractId: chat.contractId,
-        choice: "Chat_Rename",
-        argument: {
-          newName: newName,
-          newTopic: newTopic,
-        },
-      }),
+    await ledger.exercise(V4.Chat.Chat_Rename, chat.contractId, {
+      newName,
+      newTopic,
     });
   };
 
   const archiveChat = async (chat: { contractId: ContractId<V4.Chat> }) => {
-    await post("/v1/exercise", {
-      body: JSON.stringify({
-        templateId: V4.Chat.templateId,
-        contractId: chat.contractId,
-        choice: "Chat_Archive",
-        argument: {},
-      }),
-    });
+    await ledger.exercise(V4.Chat.Chat_Archive, chat.contractId, {});
   };
 
   const forwardToSlack = async (
     chat: { contractId: ContractId<V4.Chat> },
     slackChannelId: string,
   ) => {
-    await post("/v1/exercise", {
-      body: JSON.stringify({
-        templateId: V4.Chat.templateId,
-        contractId: chat.contractId,
-        choice: "Chat_ForwardToSlack",
-        argument: {
-          slackChannelId,
-        },
-      }),
+    await ledger.exercise(V4.Chat.Chat_ForwardToSlack, chat.contractId, {
+      slackChannelId,
     });
   };
 
