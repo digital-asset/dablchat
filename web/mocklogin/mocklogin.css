@@ -1,44 +1,47 @@
-@import url('https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap');
+@import url("https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap");
 
 body {
-    font-family: 'Roboto', sans-serif;
+  font-family: "Roboto", sans-serif;
 }
 
-ul#party-selector {}
+ul#party-selector {
+}
 
 ul#party-selector input[type="radio"] {
-    position: absolute;
-    width: 0;
-    height: 0;
-    opacity: 0;
-    cursor: pointer;
-    user-select: none;
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  cursor: pointer;
+  user-select: none;
 }
 
-div {}
+div {
+}
 
 li {
-    list-style: none;
-    border: 1px solid black;
+  list-style: none;
+  border: 1px solid black;
 }
 
-ul#party-selector>li div>span {}
+ul#party-selector > li div > span {
+}
 
-ul#party-selector>li.display-name {
-    display: inline-block;
-    width: 100px;
+ul#party-selector > li.display-name {
+  display: inline-block;
+  width: 100px;
 }
 
 .display-name {
-    display: block;
-    font-size: large;
+  display: block;
+  font-size: large;
 }
 
 .party-identifier {
-    display: block;
-    font-size: small;
+  display: block;
+  font-size: small;
 }
 
-li input:checked~div {
-    background-color: red;
+li input:checked ~ div {
+  background-color: red;
 }

@@ -30,10 +30,10 @@
  * @property {string} party
  */
 
-var BASE_URL = '';
+var BASE_URL = "";
 
 export function setBaseUrl(baseUrl) {
-    BASE_URL = baseUrl;
+  BASE_URL = baseUrl;
 }
 
 /**
@@ -42,11 +42,13 @@ export function setBaseUrl(baseUrl) {
  * @returns {Promise<PartyDetails[]>}
  */
 export async function listKnownParties() {
-    // read all parties from the HTTP JSON API as a convenience;
-    // we assume we're running locally against an un-authed ledger,
-    // so a valid token is not actually required in the Authorization header
-    const response = await fetch(BASE_URL + '/v1/parties', { headers: { Authorization: 'Bearer _' } });
-    return (await response.json()).result;
+  // read all parties from the HTTP JSON API as a convenience;
+  // we assume we're running locally against an un-authed ledger,
+  // so a valid token is not actually required in the Authorization header
+  const response = await fetch(BASE_URL + "/v1/parties", {
+    headers: { Authorization: "Bearer _" },
+  });
+  return (await response.json()).result;
 }
 
 /**
@@ -56,17 +58,15 @@ export async function listKnownParties() {
  * @returns {Promise<PartyDetails>}
  */
 export async function allocateParty(options) {
-    const response = await fetch(
-        BASE_URL + '/v1/parties/allocate',
-        {
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: 'Bearer _',
-        },
-        method: 'POST',
-        body: JSON.stringify(options || {}),
-    });
-    return await response.json();
+  const response = await fetch(BASE_URL + "/v1/parties/allocate", {
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer _",
+    },
+    method: "POST",
+    body: JSON.stringify(options || {}),
+  });
+  return await response.json();
 }
 
 /**
@@ -76,11 +76,11 @@ export async function allocateParty(options) {
  * @returns {Promise<User>}
  */
 export async function getUser(userId) {
-    const response = await fetch(BASE_URL + '/v1/user', {
-        method: 'POST',
-        body: { userId }
-    });
-    return await response.json();
+  const response = await fetch(BASE_URL + "/v1/user", {
+    method: "POST",
+    body: { userId },
+  });
+  return await response.json();
 }
 
 /**
@@ -88,5 +88,5 @@ export async function getUser(userId) {
  * @returns Promise<void>
  */
 export async function createUser(user) {
-    await fetch(BASE_URL + '/v1/user/create', { body: user })
+  await fetch(BASE_URL + "/v1/user/create", { body: user });
 }

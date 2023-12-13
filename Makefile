@@ -19,14 +19,16 @@ clean:
 	rm -fr .daml dist "$(pkg_dit)"
 
 .PHONY: format
-format: .venv/poetry.lock
+format: node_modules/package.json .venv/poetry.lock
 	poetry run isort python
 	poetry run black python
+	npm run format
 
 .PHONY: test
 test: .venv/poetry.lock
 	poetry run isort python --check-only
 	poetry run black python --check-only
+	npm run format-test
 	daml test
 
 .venv/poetry.lock:

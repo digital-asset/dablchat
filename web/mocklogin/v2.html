@@ -1,36 +1,36 @@
 <!doctype html>
 <html lang="en">
-
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-</head>
+  </head>
 
-<body>
+  <body>
     <h1>Login with Daml Hub</h1>
 
     <p>This is a mock login page for local development purposes ONLY.</p>
 
-    <p>Who do you want to log in as? If the user does not already exist, it will be created,
-        just as it happens on Daml Hub.</p>
+    <p>
+      Who do you want to log in as? If the user does not already exist, it will
+      be created, just as it happens on Daml Hub.
+    </p>
 
     <form id="login-form">
-        <label for="sub">Daml User ID</label>
-        <input type="text" id="sub" name="sub" required>
+      <label for="sub">Daml User ID</label>
+      <input type="text" id="sub" name="sub" required />
 
-        <button type="submit">Log In</button>
+      <button type="submit">Log In</button>
     </form>
 
     <script type="text/javascript">
-        'use strict';
-        (function () {
-            var formElem = document.getElementById('login-form');
-            formElem.onsubmit = async function (event) {
-                event.preventDefault();
-                alert('not yet implemented!')
-            };
-        })();
+      "use strict";
+      (function () {
+        var formElem = document.getElementById("login-form");
+        formElem.onsubmit = async function (event) {
+          event.preventDefault();
+          alert("not yet implemented!");
+        };
+      })();
     </script>
-</body>
-
+  </body>
 </html>

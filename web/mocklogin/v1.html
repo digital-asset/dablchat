@@ -1,49 +1,56 @@
 <!doctype html>
 <html lang="en">
-
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>(Mock) Login with Daml Hub</title>
 
-    <link rel="stylesheet" href="/mocklogin/mocklogin.css">
-</head>
+    <link rel="stylesheet" href="/mocklogin/mocklogin.css" />
+  </head>
 
-<body>
+  <body>
     <h1>Login with Daml Hub</h1>
 
     <p>This is a mock login page for local development purposes ONLY.</p>
 
     <p>Which Daml <span>Party</span> would you like to log in as?</p>
 
-    <p>Note that when you restart your development server, data is not preserved! Parties that you
-        may have allocated previously will no longer be valid.</p>
+    <p>
+      Note that when you restart your development server, data is not preserved!
+      Parties that you may have allocated previously will no longer be valid.
+    </p>
 
     <form id="login-form">
-        <ul id="party-selector"></ul>
-        <button type="submit">Log In</button>
+      <ul id="party-selector"></ul>
+      <button type="submit">Log In</button>
     </form>
 
     <script type="module">
-        import * as daml from "/mocklogin/daml-client-thin.js";
-        'use strict';
+      import * as daml from "/mocklogin/daml-client-thin.js";
+      ("use strict");
 
-        const PartyChoice = ({ displayName, identifier, checked }) => `
+      const PartyChoice = ({ displayName, identifier, checked }) => `
             <li>
                 <label for="${identifier}">
-                    <input type="radio" name="party" value="${identifier}" id="${identifier}" ${checked ? "checked" : ""} />
+                    <input type="radio" name="party" value="${identifier}" id="${identifier}" ${
+                      checked ? "checked" : ""
+                    } />
                     <div>
-                        <span class="display-name">${displayName || '<i>unnamed</i>'}</span>
+                        <span class="display-name">${
+                          displayName || "<i>unnamed</i>"
+                        }</span>
                         <span class="party-identifier">${identifier}</span>
                     </div>
                 </label>
             </li>
             `;
 
-        const NewPartyChoice = ({ checked }) => `
+      const NewPartyChoice = ({ checked }) => `
             <li>
                 <label for="allocateParty.">
-                    <input type="radio" name="party" value="allocateParty." id="allocateParty." ${checked ? "checked" : ""} />
+                    <input type="radio" name="party" value="allocateParty." id="allocateParty." ${
+                      checked ? "checked" : ""
+                    } />
                     <div>
                         <span>Allocate a new party, and sign in as that party</span>
                     </div>
@@ -51,43 +58,42 @@
             </li>
         `;
 
-        (async function () {
-            // read all parties from the HTTP JSON API as a convenience;
-            // we assume we're running locally against an un-authed ledger,
-            // so a valid token is not actually required in the Authorization header
-            const knownParties = await daml.listKnownParties();
+      (async function () {
+        // read all parties from the HTTP JSON API as a convenience;
+        // we assume we're running locally against an un-authed ledger,
+        // so a valid token is not actually required in the Authorization header
+        const knownParties = await daml.listKnownParties();
 
-            // a typical Daml Hub application starts off with three parties: UserAdmin, Public, and a
-            // default party created for the node that has no identifier. When simulating a user login,
-            // it's rare that you would want to use any of those three parties
-            document.getElementById('party-selector').innerHTML =
-                knownParties.map(PartyChoice).join('') +
-                NewPartyChoice({ checked: true });
+        // a typical Daml Hub application starts off with three parties: UserAdmin, Public, and a
+        // default party created for the node that has no identifier. When simulating a user login,
+        // it's rare that you would want to use any of those three parties
+        document.getElementById("party-selector").innerHTML =
+          knownParties.map(PartyChoice).join("") +
+          NewPartyChoice({ checked: true });
 
-            const formElem = document.getElementById('login-form');
-            formElem.onsubmit = async function (event) {
-                event.preventDefault();
+        const formElem = document.getElementById("login-form");
+        formElem.onsubmit = async function (event) {
+          event.preventDefault();
 
-                const { party } = Object.fromEntries(new FormData(event.target));
+          const { party } = Object.fromEntries(new FormData(event.target));
 
-                // if the party does not exist, allocate one; this simulates what happens
-                // when a new user joins a Daml Hub ledger
-                if (party === 'allocateParty.') {
-                    const partyDetails = await daml.allocateParty()
-                    finishLogin(partyDetails.party)
-                } else {
-                    finishLogin(party)
-                }
-            };
-        })();
+          // if the party does not exist, allocate one; this simulates what happens
+          // when a new user joins a Daml Hub ledger
+          if (party === "allocateParty.") {
+            const partyDetails = await daml.allocateParty();
+            finishLogin(partyDetails.party);
+          } else {
+            finishLogin(party);
+          }
+        };
+      })();
 
-        /**
-         * @param {string} party Finish the current login.
-         */
-        function finishLogin(party) {
-            document.location = `/.hub/local-mock/finish?party=${party}`
-        }
+      /**
+       * @param {string} party Finish the current login.
+       */
+      function finishLogin(party) {
+        document.location = `/.hub/local-mock/finish?party=${party}`;
+      }
     </script>
-</body>
-
+  </body>
 </html>

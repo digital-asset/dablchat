@@ -1,5 +1,4 @@
-mocklogin
-=========
+# mocklogin
 
 Sorta simulates a login page on Daml Hub.
 
