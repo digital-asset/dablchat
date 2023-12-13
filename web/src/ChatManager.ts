@@ -134,35 +134,22 @@ async function ChatManager(
     "Content-Type": "application/json",
   };
 
-  const siteSubDomain = () => {
-    if (window.location.hostname === "localhost") {
-      return (
-        window.location.hostname +
-        (window.location.port ? ":" + window.location.port : "")
-      );
-    }
-    return window.location.host;
-  };
-
   const post = (url: string, options = {}) => {
     Object.assign(options, { method: "POST", headers });
-
-    return fetch("//" + siteSubDomain() + url, options);
+    return fetch(url, options);
   };
 
   const fetchPublicToken = async () => {
     const response = await fetch(
-      "//" + siteSubDomain() + "/.hub/v1/public/token",
+      "/.hub/v1/public/token",
       { method: "POST" },
     );
     const jsonResp = await response.json();
-    const accessToken = jsonResp["access_token"];
-    return accessToken;
+    return jsonResp['access_token'];
   };
 
   const getDefaultParties = async () => {
-    const url = window.location.host;
-    const response = await fetch("//" + url + "/.hub/v1/default-parties");
+    const response = await fetch("/.hub/v1/default-parties");
     const jsonResp: any = await response.json();
 
     const publicPartyResponse = jsonResp["result"].find(
@@ -216,12 +203,12 @@ async function ChatManager(
 
   const postPublic = (url: string, options = {}) => {
     Object.assign(options, { method: "POST", headers: publicHeaders });
-    return fetch("//" + siteSubDomain() + url, options);
+    return fetch(url, options);
   };
 
   const getPublic = (url: string, options = {}) => {
     Object.assign(options, { method: "GET", headers: publicHeaders });
-    return fetch("//" + siteSubDomain() + url, options);
+    return fetch(url, options);
   };
 
   const userName = parseUserName(token);
