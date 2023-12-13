@@ -321,7 +321,7 @@ async function ChatManager(party: string, token: string, updateUser: (user: User
   const acceptInvitation = async (userInvitation: { contractId: ContractId<V4.UserInvitation> }) => {
     await post('/v1/exercise', {
       body: JSON.stringify({
-        templateId: V4.UserInvitation,
+        templateId: V4.UserInvitation.templateId,
         contractId: userInvitation.contractId,
         choice: 'UserInvitation_Accept',
         argument: {}

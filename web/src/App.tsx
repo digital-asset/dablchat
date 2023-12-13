@@ -312,6 +312,7 @@ class App extends Component<Props, State> {
       localStorage.setItem("party.id", partyId);
       localStorage.setItem("party.token", token);
     } catch (e: any) {
+      console.error(e);
       alert(e.message || 'Unable to connect to chat')
     }
   }
@@ -364,6 +365,7 @@ class App extends Component<Props, State> {
   }
 
   startPolling = () => {
+    // @ts-ignore
     this.timerId = setInterval(() => this.chatManager.fetchUpdate(), 2000);
   }
 

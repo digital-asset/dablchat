@@ -11,21 +11,16 @@ interface Props {
 const Login = (props: Props) => {
   const { partyId, handleSubmit, handleUserInput, handleTokenInput, token } = props;
 
-  const showLoginWithDABL = window.location.hostname !== 'localhost';
-
-  const loginUrl = (showLoginWithDABL && "/.hub/v1/auth/login") || ""
+  const loginUrl = "/.hub/v1/auth/login";
 
   return (
     <div className="login-container">
       <div className="login">
         <form className="login-form" onSubmit={handleSubmit}>
-          {showLoginWithDABL && (
-            <>
-              <a className="submit-btn dabl-login" href={loginUrl}>Log In with Daml Hub</a>
-              <label className="username-label" htmlFor="username">
-                OR
-              </label>
-            </>)}
+          <a className="submit-btn dabl-login" href={loginUrl}>Log In with Daml Hub</a>
+          <label className="username-label" htmlFor="username">
+            OR
+          </label>
           <label className="username-label" htmlFor="username">
             Party
           </label>

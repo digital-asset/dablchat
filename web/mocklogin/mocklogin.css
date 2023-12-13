@@ -1,0 +1,44 @@
+@import url('https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap');
+
+body {
+    font-family: 'Roboto', sans-serif;
+}
+
+ul#party-selector {}
+
+ul#party-selector input[type="radio"] {
+    position: absolute;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    cursor: pointer;
+    user-select: none;
+}
+
+div {}
+
+li {
+    list-style: none;
+    border: 1px solid black;
+}
+
+ul#party-selector>li div>span {}
+
+ul#party-selector>li.display-name {
+    display: inline-block;
+    width: 100px;
+}
+
+.display-name {
+    display: block;
+    font-size: large;
+}
+
+.party-identifier {
+    display: block;
+    font-size: small;
+}
+
+li input:checked~div {
+    background-color: red;
+}
