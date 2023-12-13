@@ -417,7 +417,6 @@ class App extends Component<Props, State> {
 
     if (newMessage.trim() === "") return;
     if (!chatUser) return;
-    if (!currentChat) return;
 
     const match = /\/(\w+)((?:\s*)(.*))?/.exec(newMessage);
     const command = match ? match[1] : "send";
@@ -427,6 +426,8 @@ class App extends Component<Props, State> {
 
     switch (command) {
       case "dm":
+        if (!currentChat) return;
+
         const members = words
           .filter((w) => w.startsWith("@"))
           .map((w) => w.slice(1));
