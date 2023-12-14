@@ -12,13 +12,11 @@ const Login = (props: Props) => {
   const { partyId, handleSubmit, handleUserInput, handleTokenInput, token } =
     props;
 
-  const loginUrl = "/.hub/v1/auth/login";
-
   return (
     <div className="login-container">
       <div className="login">
         <form className="login-form" onSubmit={handleSubmit}>
-          <a className="submit-btn dabl-login" href={loginUrl}>
+          <a className="submit-btn dabl-login" href="/.hub/v2/auth/login">
             Log In with Daml Hub
           </a>
           <label className="username-label" htmlFor="username">

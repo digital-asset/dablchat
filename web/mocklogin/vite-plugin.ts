@@ -53,7 +53,7 @@ interface TokenRequest {
   party?: string | null;
 }
 
-function mintToken({ sub, party }: TokenRequest): string {
+async function mintToken({ sub, party }: TokenRequest): Promise<string> {
   const header = { typ: "JWT", alg: "HS256" };
 
   if (!sub) {
@@ -69,6 +69,8 @@ function mintToken({ sub, party }: TokenRequest): string {
       applicationId: "damlhub",
       actAs: [party],
     };
+  } else {
+    payload.aud = `https://daml.com/jwt/aud/participant/sandbox`;
   }
 
   return `${encodeJWTComponent(header)}.${encodeJWTComponent(
@@ -108,23 +110,25 @@ function buildPlugin(): Plugin {
 
           case "/.hub/local-mock/finish":
             console.log("finishing the login flow...");
-            const token = mintToken({
-              sub: searchParams.get("sub"),
-              party: searchParams.get("party"),
-            });
+            (async function () {
+              const token = await mintToken({
+                sub: searchParams.get("sub"),
+                party: searchParams.get("party"),
+              });
 
-            res.statusCode = 302;
-            res.setHeader("Location", `http://${req.headers.host}/`);
-            res.setHeader(
-              "Cache-Control",
-              "max-age=0, no-cache, must-revalidate, proxy-revalidate",
-            );
-            res.setHeader(
-              "Set-Cookie",
-              `DAMLHUB_LEDGER_ACCESS_TOKEN=${token}; Path=/`,
-            );
-            res.end();
-            console.log("login flow finished.");
+              res.statusCode = 302;
+              res.setHeader("Location", `http://${req.headers.host}/`);
+              res.setHeader(
+                "Cache-Control",
+                "max-age=0, no-cache, must-revalidate, proxy-revalidate",
+              );
+              res.setHeader(
+                "Set-Cookie",
+                `DAMLHUB_LEDGER_ACCESS_TOKEN=${token}; Path=/`,
+              );
+              res.end();
+              console.log("login flow finished.");
+            })();
             break;
 
           case "/.hub/v1/public/token":

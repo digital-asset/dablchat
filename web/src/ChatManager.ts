@@ -26,30 +26,6 @@ export interface Aliases {
   [user: Party]: string;
 }
 
-function parseJwt(token: string): any {
-  var base64Url = token.split(".")[1];
-  var base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-  var jsonPayload = decodeURIComponent(
-    atob(base64)
-      .split("")
-      .map(function (c) {
-        return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
-      })
-      .join(""),
-  );
-
-  return JSON.parse(jsonPayload);
-}
-
-function parseUserName(token: string): string {
-  const sub = parseJwt(token)["sub"];
-  const startChar = sub.indexOf("|");
-  const endChar = sub.indexOf("@");
-  const userNameLength = endChar - startChar - 1;
-
-  return userNameLength > 0 ? sub.substr(startChar + 1, userNameLength) : sub;
-}
-
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -60,18 +36,15 @@ interface DefaultParties {
 }
 
 class ChatManager {
-  primaryParty: string;
+  primaryParty!: string;
   _token: string;
   _updateState: (user: User, model: Chat[], aliases: Aliases) => void;
   ledger: Ledger;
-  ledgerPublic!: Ledger;
 
   constructor(
-    party: string,
     token: string,
     updateState: (user: User, model: Chat[], aliases: Aliases) => void,
   ) {
-    this.primaryParty = party;
     this._updateState = updateState;
 
     this.ledger = new Ledger({ token });
@@ -81,14 +54,10 @@ class ChatManager {
   async init(updateUser: (user: User, onboarded: boolean) => void) {
     const parties = await this.getDefaultParties();
     const operatorId = parties["userAdminParty"];
-    localStorage.setItem("public.party", parties["publicParty"]);
 
-    const publicToken = await this.fetchPublicToken();
-    localStorage.setItem("public.token", publicToken);
-    this.ledgerPublic = new Ledger({ token: publicToken });
-
-    const userName = parseUserName(this._token);
-    await this.createUserAccountRequest(operatorId, userName);
+    const ledgerUser = await this.ledger.getUser();
+    this.primaryParty = ledgerUser.primaryParty!;
+    await this.createUserAccountRequest(operatorId, ledgerUser.userId);
 
     try {
       // Make MAX_ATTEMPTS to fetch the user or their invitation
@@ -128,12 +97,6 @@ class ChatManager {
     }
   }
 
-  async fetchPublicToken(): Promise<string> {
-    const response = await fetch("/.hub/v1/public/token", { method: "POST" });
-    const jsonResp = await response.json();
-    return jsonResp["access_token"];
-  }
-
   async getDefaultParties(): Promise<DefaultParties> {
     const response = await fetch("/.hub/v1/default-parties");
     const jsonResp: { result: PartyInfo[] } = await response.json();
@@ -170,12 +133,7 @@ class ChatManager {
 
   async fetchUpdate(): Promise<void> {
     try {
-      const userMessages = await this.ledger.query(V4.Message);
-      const userMessageContractIds = userMessages.map((u) => u.contractId);
-
-      const publicMessages = (await this.ledgerPublic.query(V4.Message)).filter(
-        (m) => !userMessageContractIds.includes(m.contractId),
-      );
+      const messages = await this.ledger.query(V4.Message);
 
       const chats = await this.ledger.query(V4.Chat);
       const user = (await this.ledger.query(V4.User))[0];
@@ -185,9 +143,6 @@ class ChatManager {
       const model: Chat[] = chats
         .sort((c1, c2) => c1.payload.name.localeCompare(c2.payload.name))
         .map((c) => {
-          const messages = c.payload.isPublic
-            ? userMessages.concat(publicMessages)
-            : userMessages;
           const chatMessages = messages
             .filter((m) => m.payload.chatId === c.payload.chatId)
             .sort((m1, m2) =>
@@ -208,7 +163,7 @@ class ChatManager {
           };
         });
 
-      const selfAliases = await this.ledgerPublic.query(V4.SelfAlias);
+      const selfAliases = await this.ledger.query(V4.SelfAlias);
 
       const publicAliases: Aliases = selfAliases.reduce((acc, curr) => {
         acc[curr.payload.user] = curr.payload.alias;
