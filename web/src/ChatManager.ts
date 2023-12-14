@@ -54,88 +54,87 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-interface ChatManager {
-  fetchUpdate(): Promise<void>;
-  acceptInvitation(userInvitation: {
-    contractId: ContractId<V4.UserInvitation>;
-  }): Promise<void>;
-  sendMessage(
-    user: { user: string },
-    chat: { contractId: ContractId<V4.Chat> },
-    message: string,
-  ): Promise<void>;
-  requestPrivateChat(
-    user: { contractId: ContractId<V4.User> },
-    name: string,
-    members: Party[],
-    topic: string,
-  ): Promise<void>;
-  requestPublicChat(
-    user: { contractId: ContractId<V4.User> },
-    name: string,
-    topic: string,
-  ): Promise<void>;
-  addMembersToChat(
-    user: { user: Party },
-    chat: { contractId: ContractId<V4.Chat> },
-    newMembers: Party[],
-  ): Promise<void>;
-  removeMembersFromChat(
-    user: { user: Party },
-    chat: { contractId: ContractId<V4.Chat> },
-    membersToRemove: Party[],
-  ): Promise<void>;
-  updateSelfAlias(
-    user: { contractId: ContractId<V4.User> },
-    alias: string,
-  ): Promise<void>;
-  upsertToAddressBook(
-    user: { user: V4.AddressBook.Key },
-    party: Party,
-    name: string,
-  ): Promise<void>;
-  removeFromAddressBook(
-    user: { user: V4.AddressBook.Key },
-    party: Party,
-  ): Promise<void>;
-  requestUserList(user: { contractId: ContractId<V4.User> }): Promise<void>;
-  renameChat(
-    chat: { contractId: ContractId<V4.Chat> },
-    newName: string,
-    newTopic: string,
-  ): Promise<void>;
-  archiveChat(chat: { contractId: ContractId<V4.Chat> }): Promise<void>;
-  forwardToSlack(
-    chat: { contractId: ContractId<V4.Chat> },
-    slackChannelId: string,
-  ): Promise<void>;
-  archiveBotRequest(
-    user: { contractId: ContractId<V4.User> },
-    botName: string,
-    enabled: boolean,
-    message?: string | null,
-  ): Promise<void>;
-  updateUserSettings(
-    user: { contractId: ContractId<V4.User> },
-    timedelta: V4.Duration,
-  ): Promise<void>;
+interface DefaultParties {
+  publicParty: Party;
+  userAdminParty: Party;
 }
 
-async function ChatManager(
-  party: string,
-  token: string,
-  updateUser: (user: User, onboarded: boolean) => void,
-  updateState: (user: User, model: Chat[], aliases: Aliases) => void,
-): Promise<ChatManager> {
-  const ledger = new Ledger({ token });
+class ChatManager {
+  primaryParty: string;
+  _token: string;
+  _updateState: (user: User, model: Chat[], aliases: Aliases) => void;
+  ledger: Ledger;
+  ledgerPublic!: Ledger;
 
-  const fetchPublicToken = async () => {
+  constructor(
+    party: string,
+    token: string,
+    updateState: (user: User, model: Chat[], aliases: Aliases) => void,
+  ) {
+    this.primaryParty = party;
+    this._updateState = updateState;
+
+    this.ledger = new Ledger({ token });
+    this._token = token;
+  }
+
+  async init(updateUser: (user: User, onboarded: boolean) => void) {
+    const parties = await this.getDefaultParties();
+    const operatorId = parties["userAdminParty"];
+    localStorage.setItem("public.party", parties["publicParty"]);
+
+    const publicToken = await this.fetchPublicToken();
+    localStorage.setItem("public.token", publicToken);
+    this.ledgerPublic = new Ledger({ token: publicToken });
+
+    const userName = parseUserName(this._token);
+    await this.createUserAccountRequest(operatorId, userName);
+
+    try {
+      // Make MAX_ATTEMPTS to fetch the user or their invitation
+      let user = null;
+      let attempts = 0;
+      const MAX_ATTEMPTS = 3;
+      while (!user && attempts < MAX_ATTEMPTS) {
+        const userContracts = await this.ledger.query(V4.User);
+        const userInvitationContracts = await this.ledger.query(
+          V4.UserInvitation,
+        );
+
+        if (userContracts.length) {
+          user = userContracts[0];
+        } else if (userInvitationContracts.length) {
+          user = userInvitationContracts[0];
+        } else {
+          attempts += 1;
+          await sleep(2000);
+        }
+      }
+
+      if (!user) {
+        throw new Error(
+          `Cannot onboard user ${this.primaryParty} to this app!`,
+        );
+      }
+
+      const onboarded = user.templateId.endsWith(V4.User.templateId);
+
+      updateUser(
+        Object.assign({}, { ...user.payload, contractId: user.contractId }),
+        onboarded,
+      );
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  async fetchPublicToken(): Promise<string> {
     const response = await fetch("/.hub/v1/public/token", { method: "POST" });
     const jsonResp = await response.json();
     return jsonResp["access_token"];
-  };
+  }
 
-  const getDefaultParties = async () => {
+  async getDefaultParties(): Promise<DefaultParties> {
     const response = await fetch("/.hub/v1/default-parties");
     const jsonResp: { result: PartyInfo[] } = await response.json();
 
@@ -156,76 +155,32 @@ async function ChatManager(
       publicParty: publicPartyResponse.identifier,
       userAdminParty: userAdminPartyResponse.identifier,
     };
-  };
-
-  const createUserAccountRequest = async (
-    operator: string,
-    userName: string,
-  ) => {
-    await ledger.create(V4.UserAccountRequest, {
-      operator,
-      user: party,
-      userName,
-    });
-  };
-
-  const parties = await getDefaultParties();
-  const operatorId = parties["userAdminParty"];
-  localStorage.setItem("public.party", parties["publicParty"]);
-
-  const publicToken = await fetchPublicToken();
-  localStorage.setItem("public.token", publicToken);
-  const ledgerPublic = new Ledger({ token: publicToken });
-
-  const userName = parseUserName(token);
-  await createUserAccountRequest(operatorId, userName);
-
-  try {
-    // Make MAX_ATTEMPTS to fetch the user or their invitation
-    let user = null;
-    let attempts = 0;
-    const MAX_ATTEMPTS = 3;
-    while (!user && attempts < MAX_ATTEMPTS) {
-      const userContracts = await ledger.query(V4.User);
-      const userInvitationContracts = await ledger.query(V4.UserInvitation);
-
-      if (userContracts.length) {
-        user = userContracts[0];
-      } else if (userInvitationContracts.length) {
-        user = userInvitationContracts[0];
-      } else {
-        attempts += 1;
-        await sleep(2000);
-      }
-    }
-
-    if (!user) {
-      throw new Error(`Cannot onboard user ${party} to this app!`);
-    }
-
-    const onboarded = user.templateId.endsWith(V4.User.templateId);
-
-    updateUser(
-      Object.assign({}, { ...user.payload, contractId: user.contractId }),
-      onboarded,
-    );
-  } catch (e) {
-    console.error(e);
   }
 
-  const fetchUpdate = async () => {
+  async createUserAccountRequest(
+    operator: string,
+    userName: string,
+  ): Promise<void> {
+    await this.ledger.create(V4.UserAccountRequest, {
+      operator,
+      user: this.primaryParty,
+      userName,
+    });
+  }
+
+  async fetchUpdate(): Promise<void> {
     try {
-      const userMessages = await ledger.query(V4.Message);
+      const userMessages = await this.ledger.query(V4.Message);
       const userMessageContractIds = userMessages.map((u) => u.contractId);
 
-      const publicMessages = (await ledgerPublic.query(V4.Message)).filter(
+      const publicMessages = (await this.ledgerPublic.query(V4.Message)).filter(
         (m) => !userMessageContractIds.includes(m.contractId),
       );
 
-      const chats = await ledger.query(V4.Chat);
-      const user = (await ledger.query(V4.User))[0];
-      const selfAlias = (await ledger.query(V4.SelfAlias))[0];
-      const addressBook = (await ledger.query(V4.AddressBook))[0];
+      const chats = await this.ledger.query(V4.Chat);
+      const user = (await this.ledger.query(V4.User))[0];
+      const selfAlias = (await this.ledger.query(V4.SelfAlias))[0];
+      const addressBook = (await this.ledger.query(V4.AddressBook))[0];
 
       const model: Chat[] = chats
         .sort((c1, c2) => c1.payload.name.localeCompare(c2.payload.name))
@@ -235,7 +190,9 @@ async function ChatManager(
             : userMessages;
           const chatMessages = messages
             .filter((m) => m.payload.chatId === c.payload.chatId)
-            .sort((m1, m2) => m1.payload.postedAt.localeCompare(m2.payload.postedAt))
+            .sort((m1, m2) =>
+              m1.payload.postedAt.localeCompare(m2.payload.postedAt),
+            )
             .map((m) =>
               Object.assign({}, { ...m.payload, contractId: m.contractId }),
             );
@@ -251,7 +208,7 @@ async function ChatManager(
           };
         });
 
-      const selfAliases = await ledgerPublic.query(V4.SelfAlias);
+      const selfAliases = await this.ledgerPublic.query(V4.SelfAlias);
 
       const publicAliases: Aliases = selfAliases.reduce((acc, curr) => {
         acc[curr.payload.user] = curr.payload.alias;
@@ -267,7 +224,7 @@ async function ChatManager(
         aliases[selfAlias.payload.user] = selfAlias.payload.alias;
       }
 
-      updateState(
+      this._updateState(
         Object.assign({}, { ...user.payload, contractId: user.contractId }),
         model,
         aliases,
@@ -275,175 +232,182 @@ async function ChatManager(
     } catch (e) {
       console.error("Could not fetch contracts!", e);
     }
-  };
+  }
 
-  const archiveBotRequest = async (
+  async archiveBotRequest(
     user: { contractId: ContractId<V4.User> },
     botName: string,
     enabled: boolean,
     message: string,
-  ) => {
-    await ledger.exercise(V4.User.User_RequestArchiveBot, user.contractId, {
-      botName,
-      enabled,
-      message,
-    });
-  };
+  ): Promise<void> {
+    await this.ledger.exercise(
+      V4.User.User_RequestArchiveBot,
+      user.contractId,
+      {
+        botName,
+        enabled,
+        message,
+      },
+    );
+  }
 
-  const updateUserSettings = async (
+  async updateUserSettings(
     user: { contractId: ContractId<V4.User> },
     newArchiveMessagesAfter: V4.Duration,
-  ) => {
-    await ledger.exercise(V4.User.User_UpdateUserSettings, user.contractId, {
-      newArchiveMessagesAfter,
-    });
-  };
+  ): Promise<void> {
+    await this.ledger.exercise(
+      V4.User.User_UpdateUserSettings,
+      user.contractId,
+      {
+        newArchiveMessagesAfter,
+      },
+    );
+  }
 
-  const acceptInvitation = async (userInvitation: {
+  async acceptInvitation(userInvitation: {
     contractId: ContractId<V4.UserInvitation>;
-  }) => {
-    await ledger.exercise(
+  }): Promise<void> {
+    await this.ledger.exercise(
       V4.UserInvitation.UserInvitation_Accept,
       userInvitation.contractId,
       {},
     );
-  };
+  }
 
-  const sendMessage = async (
+  async sendMessage(
     user: { user: string },
     chat: { contractId: ContractId<V4.Chat> },
     message: string,
-  ) => {
+  ): Promise<void> {
     const d = new Date();
     const seconds = Math.round(d.getTime() / 1000);
-    await ledger.exercise(V4.Chat.Chat_PostMessage, chat.contractId, {
+    await this.ledger.exercise(V4.Chat.Chat_PostMessage, chat.contractId, {
       poster: user.user,
       message,
       postedAt: seconds.toString(),
     });
-  };
+  }
 
-  const requestPrivateChat = async (
+  async requestPrivateChat(
     user: { contractId: ContractId<V4.User> },
     name: string,
     members: Party[],
     topic: string,
-  ) => {
-    await ledger.exercise(V4.User.User_RequestPrivateChat, user.contractId, {
-      name,
-      members,
-      topic,
-    });
-  };
+  ): Promise<void> {
+    await this.ledger.exercise(
+      V4.User.User_RequestPrivateChat,
+      user.contractId,
+      {
+        name,
+        members,
+        topic,
+      },
+    );
+  }
 
-  const requestPublicChat = async (
+  async requestPublicChat(
     user: { contractId: ContractId<V4.User> },
     name: string,
     topic: string,
-  ) => {
-    await ledger.exercise(V4.User.User_RequestPublicChat, user.contractId, {
-      name,
-      topic,
-    });
-  };
+  ): Promise<void> {
+    await this.ledger.exercise(
+      V4.User.User_RequestPublicChat,
+      user.contractId,
+      {
+        name,
+        topic,
+      },
+    );
+  }
 
-  const addMembersToChat = async (
+  async addMembersToChat(
     user: { user: Party },
     chat: { contractId: ContractId<V4.Chat> },
     newMembers: Party[],
-  ) => {
-    await ledger.exercise(V4.Chat.Chat_AddMembers, chat.contractId, {
+  ): Promise<void> {
+    await this.ledger.exercise(V4.Chat.Chat_AddMembers, chat.contractId, {
       member: user.user,
       newMembers: newMembers,
     });
-  };
+  }
 
-  const removeMembersFromChat = async (
+  async removeMembersFromChat(
     user: { user: Party },
     chat: { contractId: ContractId<V4.Chat> },
     membersToRemove: Party[],
-  ) => {
-    await ledger.exercise(V4.Chat.Chat_RemoveMembers, chat.contractId, {
+  ): Promise<void> {
+    await this.ledger.exercise(V4.Chat.Chat_RemoveMembers, chat.contractId, {
       member: user.user,
       membersToRemove: membersToRemove,
     });
-  };
+  }
 
-  const updateSelfAlias = async (
+  async updateSelfAlias(
     user: { contractId: ContractId<V4.User> },
     alias: string,
-  ) => {
-    await ledger.exercise(V4.User.User_UpdateSelfAlias, user.contractId, {
+  ): Promise<void> {
+    await this.ledger.exercise(V4.User.User_UpdateSelfAlias, user.contractId, {
       alias,
     });
-  };
+  }
 
-  const upsertToAddressBook = async (
+  async upsertToAddressBook(
     user: { user: V4.AddressBook.Key },
     party: Party,
     name: string,
-  ) => {
-    await ledger.exerciseByKey(V4.AddressBook.AddressBook_Add, user.user, {
+  ): Promise<void> {
+    await this.ledger.exerciseByKey(V4.AddressBook.AddressBook_Add, user.user, {
       party,
       name,
     });
-  };
+  }
 
-  const removeFromAddressBook = async (
+  async removeFromAddressBook(
     user: { user: V4.AddressBook.Key },
     party: Party,
-  ) => {
-    await ledger.exerciseByKey(V4.AddressBook.AddressBook_Remove, user.user, {
-      party,
-    });
-  };
+  ): Promise<void> {
+    await this.ledger.exerciseByKey(
+      V4.AddressBook.AddressBook_Remove,
+      user.user,
+      {
+        party,
+      },
+    );
+  }
 
-  const requestUserList = async (user: { contractId: ContractId<V4.User> }) => {
-    await ledger.exercise(V4.User.User_RequestAliases, user.contractId, {});
-  };
+  async requestUserList(user: {
+    contractId: ContractId<V4.User>;
+  }): Promise<void> {
+    await this.ledger.exercise(
+      V4.User.User_RequestAliases,
+      user.contractId,
+      {},
+    );
+  }
 
-  const renameChat = async (
+  async renameChat(
     chat: { contractId: ContractId<V4.Chat> },
     newName: string,
     newTopic: string,
-  ) => {
-    await ledger.exercise(V4.Chat.Chat_Rename, chat.contractId, {
+  ): Promise<void> {
+    await this.ledger.exercise(V4.Chat.Chat_Rename, chat.contractId, {
       newName,
       newTopic,
     });
-  };
+  }
 
-  const archiveChat = async (chat: { contractId: ContractId<V4.Chat> }) => {
-    await ledger.exercise(V4.Chat.Chat_Archive, chat.contractId, {});
-  };
+  async archiveChat(chat: { contractId: ContractId<V4.Chat> }): Promise<void> {
+    await this.ledger.exercise(V4.Chat.Chat_Archive, chat.contractId, {});
+  }
 
-  const forwardToSlack = async (
+  async forwardToSlack(
     chat: { contractId: ContractId<V4.Chat> },
     slackChannelId: string,
-  ) => {
-    await ledger.exercise(V4.Chat.Chat_ForwardToSlack, chat.contractId, {
+  ): Promise<void> {
+    await this.ledger.exercise(V4.Chat.Chat_ForwardToSlack, chat.contractId, {
       slackChannelId,
     });
-  };
-
-  return {
-    fetchUpdate,
-    acceptInvitation,
-    sendMessage,
-    requestPrivateChat,
-    requestPublicChat,
-    addMembersToChat,
-    removeMembersFromChat,
-    updateSelfAlias,
-    upsertToAddressBook,
-    removeFromAddressBook,
-    requestUserList,
-    renameChat,
-    archiveChat,
-    forwardToSlack,
-    archiveBotRequest,
-    updateUserSettings,
-  };
+  }
 }
 
 export default ChatManager;
