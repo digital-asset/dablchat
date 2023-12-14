@@ -25,8 +25,6 @@ import { Party } from "@daml/types";
 
 const Loading = () => <div>Loading</div>;
 
-const GIPHY_TOKEN = "kDqbzOZtPvy38TLdqonPnpTPrsLfW8uy";
-
 const getAllKnownUsers = (chats: Chat[], aliases: Aliases) => {
   if (!chats) return [];
   const chatMembers = [...new Set(chats.flatMap((c) => c.chatMembers))];
@@ -464,22 +462,6 @@ class App extends Component<Props, State> {
         if (!chatToForward) return alert(`unknown chat id ${chatToForward}`);
         const slackChannelId = words.filter((w) => !w.startsWith("#")).join("");
         this.chatManager.forwardToSlack(chatToForward, slackChannelId);
-        break;
-      case "giphy":
-        if (!currentChat) return;
-        fetch(
-          `//api.giphy.com/v1/gifs/random?api_key=${GIPHY_TOKEN}&tag=${encodeURIComponent(
-            content,
-          )}`,
-        )
-          .then(async (res) => {
-            const result = await res.json();
-            const imageUrl = result.data.fixed_height_downsampled_url;
-            const message = `![${content}](${imageUrl})`;
-            this.chatManager.sendMessage(chatUser, currentChat, message);
-          })
-          .then(() => this.chatManager.fetchUpdate())
-          .then(() => this.scrollToLatestMessages());
         break;
       default:
         if (!currentChat)
