@@ -109,15 +109,12 @@ interface ChatManager {
     chat: { contractId: ContractId<V4.Chat> },
     slackChannelId: string,
   ): Promise<void>;
-  getPublicAutomation(): Promise<any>;
-  deployArchiveBot(owner: string, artifactHash: string): Promise<void>;
   archiveBotRequest(
     user: { contractId: ContractId<V4.User> },
     botName: string,
     enabled: boolean,
     message?: string | null,
   ): Promise<void>;
-  undeployArchiveBot(artifactHash: string): Promise<void>;
   updateUserSettings(
     user: { contractId: ContractId<V4.User> },
     timedelta: V4.Duration,
@@ -201,11 +198,6 @@ async function ChatManager(
 
   const postPublic = (url: string, options = {}) => {
     Object.assign(options, { method: "POST", headers: publicHeaders });
-    return fetch(url, options);
-  };
-
-  const getPublic = (url: string, options = {}) => {
-    Object.assign(options, { method: "GET", headers: publicHeaders });
     return fetch(url, options);
   };
 
@@ -362,23 +354,6 @@ async function ChatManager(
     } catch (e) {
       console.error("Could not fetch contracts!", e);
     }
-  };
-
-  const getPublicAutomation = async () => {
-    return getPublic("/.hub/v1/published");
-  };
-
-  const deployArchiveBot = async (owner: string, artifactHash: string) => {
-    await post("/.hub/v1/published/deploy", {
-      body: JSON.stringify({
-        artifactHash: artifactHash,
-        owner: owner,
-      }),
-    });
-  };
-
-  const undeployArchiveBot = async (artifactHash: string) => {
-    await post("/.hub/v1/published/undeploy/" + artifactHash);
   };
 
   const archiveBotRequest = async (
@@ -545,10 +520,7 @@ async function ChatManager(
     renameChat,
     archiveChat,
     forwardToSlack,
-    getPublicAutomation,
-    deployArchiveBot,
     archiveBotRequest,
-    undeployArchiveBot,
     updateUserSettings,
   };
 }
