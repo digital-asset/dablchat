@@ -6,6 +6,11 @@ interface Props {
   aliases: Aliases;
 }
 
+export interface ChatMember {
+  party: Party;
+  alias: string;
+}
+
 const ChatMembers = (props: Props) => {
   const { chatMembers, aliases } = props; // potentially send user a direct message
   const members = chatMembers.map((member) => {
