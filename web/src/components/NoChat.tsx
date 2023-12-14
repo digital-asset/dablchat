@@ -115,12 +115,6 @@ const NoChat: FunctionComponent<Props> = (_: Props) => (
           <th></th>
         </tr>
         <tr>
-          <td>Random GIF optionally related to tag</td>
-          <td>
-            <code>/giphy [tag]</code>
-          </td>
-        </tr>
-        <tr>
           <td>Autocomplete User or Chat</td>
           <td>
             <code>@user</code> &nbsp; <code>#chat</code>

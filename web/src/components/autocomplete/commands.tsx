@@ -28,10 +28,6 @@ const commands: Command[] = [
     description: "create a private chat between members",
   },
   {
-    command: "/giphy [tag]",
-    description: "random GIF related to tag. Random GIF if no tag specified",
-  },
-  {
     command: "/rename [#chat-id] [new-name] [new description]",
     description: "rename a chat. (You must be the creator of the chat)",
   },
