@@ -66,7 +66,16 @@ export async function allocateParty(options) {
     method: "POST",
     body: JSON.stringify(options || {}),
   });
-  return await response.json();
+  return (await response.json()).result;
+}
+
+export async function listUsers() {
+  const response = await fetch(BASE_URL + "/v1/users", {
+    headers: {
+      Authorization: "Bearer _",
+    },
+  });
+  return (await response.json()).result;
 }
 
 /**
@@ -77,10 +86,14 @@ export async function allocateParty(options) {
  */
 export async function getUser(userId) {
   const response = await fetch(BASE_URL + "/v1/user", {
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer _",
+    },
     method: "POST",
-    body: { userId },
+    body: JSON.stringify({ userId }),
   });
-  return await response.json();
+  return (await response.json()).result;
 }
 
 /**
@@ -88,5 +101,12 @@ export async function getUser(userId) {
  * @returns Promise<void>
  */
 export async function createUser(user) {
-  await fetch(BASE_URL + "/v1/user/create", { body: user });
+  await fetch(BASE_URL + "/v1/user/create", {
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer _",
+    },
+    method: "POST",
+    body: JSON.stringify(user),
+  });
 }

@@ -19,6 +19,8 @@ export async function allocateParty(
   request: AllocatePartyRequest,
 ): Promise<PartyInfo>;
 
+export async function listUsers(): Promise<User[]>;
+
 export async function getUser(userId: string): Promise<User>;
 
 export async function createUser(request: CreateUserRequest): Promise<void>;

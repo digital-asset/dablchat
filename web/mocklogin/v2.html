@@ -16,21 +16,78 @@
     </p>
 
     <form id="login-form">
-      <label for="sub">Daml User ID</label>
-      <input type="text" id="sub" name="sub" required />
-
+      <ul id="user-selector"></ul>
       <button type="submit">Log In</button>
     </form>
 
-    <script type="text/javascript">
-      "use strict";
+    <script type="module">
+      import * as daml from "/mocklogin/daml-client-thin.js";
+
+      const knownUsers = await daml.listUsers();
+
+      const UserChoice = ({ userId, checked }, index) => `
+        <li>
+          <label for="user-${index}">
+            <input type="radio" name="userId" value="${userId}" id="user-${index}" ${
+              checked ? "checked" : ""
+            }/>
+            <div>
+              <span class="sub">${userId}</span>
+            </div>
+          </label>
+        </li>
+      `;
+
+      const NewUserChoice = ({ checked }) => `
+        <li>
+          <label for="user-new">
+            <input type="radio" name="userId" value="" id="user-new" ${
+              checked ? "checked" : ""
+            }/>
+            <div>
+              <span>Allocate a new user</span>
+              <input type="text" name="newUserId" value="">
+            </div>
+          </label>
+        </li>
+      `;
+
       (function () {
-        var formElem = document.getElementById("login-form");
+        document.getElementById("user-selector").innerHTML =
+          knownUsers.map(UserChoice).join("") +
+          NewUserChoice({ checked: true });
+
+        let formElem = document.getElementById("login-form");
         formElem.onsubmit = async function (event) {
           event.preventDefault();
-          alert("not yet implemented!");
+
+          const { userId, newUserId } = Object.fromEntries(
+            new FormData(event.target),
+          );
+          if (userId) {
+            finishLogin(userId);
+          } else {
+            const publicUser = await daml.getUser("Public");
+            const details = await daml.allocateParty();
+            await daml.createUser({
+              userId: newUserId,
+              primaryParty: details.identifier,
+              rights: [
+                { type: "CanActAs", party: details.identifier },
+                { type: "CanReadAs", party: publicUser.primaryParty },
+              ],
+            });
+            finishLogin(newUserId);
+          }
         };
       })();
+
+      /**
+       * @param {string} party Finish the current login.
+       */
+      function finishLogin(party) {
+        document.location = `/.hub/local-mock/finish?sub=${party}`;
+      }
     </script>
   </body>
 </html>
