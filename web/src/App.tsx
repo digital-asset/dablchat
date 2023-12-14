@@ -184,7 +184,6 @@ class App extends Component<Props, State> {
     event.preventDefault();
     localStorage.removeItem("party.id");
     localStorage.removeItem("party.token");
-    localStorage.removeItem("operator.id");
     this.stopPolling();
     this.setState({
       partyId: "",

@@ -170,9 +170,7 @@ async function ChatManager(
   };
 
   const parties = await getDefaultParties();
-  const operatorId =
-    localStorage.getItem("operator.id") || parties["userAdminParty"];
-  localStorage.setItem("operator.id", operatorId);
+  const operatorId = parties["userAdminParty"];
   localStorage.setItem("public.party", parties["publicParty"]);
 
   const publicToken = await fetchPublicToken();
@@ -230,26 +228,14 @@ async function ChatManager(
       const addressBook = (await ledger.query(V4.AddressBook))[0];
 
       const model: Chat[] = chats
-        .sort((c1, c2) =>
-          c1.payload.name > c2.payload.name
-            ? 1
-            : c1.payload.name < c2.payload.name
-              ? -1
-              : 0,
-        )
+        .sort((c1, c2) => c1.payload.name.localeCompare(c2.payload.name))
         .map((c) => {
           const messages = c.payload.isPublic
             ? userMessages.concat(publicMessages)
             : userMessages;
           const chatMessages = messages
             .filter((m) => m.payload.chatId === c.payload.chatId)
-            .sort((m1, m2) =>
-              m1.payload.postedAt > m2.payload.postedAt
-                ? 1
-                : m1.payload.postedAt < m2.payload.postedAt
-                  ? -1
-                  : 0,
-            )
+            .sort((m1, m2) => m1.payload.postedAt.localeCompare(m2.payload.postedAt))
             .map((m) =>
               Object.assign({}, { ...m.payload, contractId: m.contractId }),
             );
