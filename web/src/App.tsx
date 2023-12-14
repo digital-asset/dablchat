@@ -203,12 +203,8 @@ class App extends Component<Props, State> {
 
   async createChatManager(partyId: Party, token: string) {
     try {
-      this.chatManager = await ChatManager(
-        partyId,
-        token,
-        this.updateUser,
-        this.updateState,
-      );
+      this.chatManager = new ChatManager(partyId, token, this.updateState);
+      await this.chatManager.init(this.updateUser);
       localStorage.setItem("party.id", partyId);
       localStorage.setItem("party.token", token);
     } catch (e: any) {
