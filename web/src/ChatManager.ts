@@ -1,6 +1,6 @@
 import { ContractId, Party } from "@daml/types";
 import * as V4 from "@daml.js/daml-chat/lib/Chat/V4";
-import Ledger from "@daml/ledger";
+import Ledger, { PartyInfo } from "@daml/ledger";
 
 export interface Chat {
   contractId: ContractId<V4.Chat>;
@@ -129,16 +129,6 @@ async function ChatManager(
 ): Promise<ChatManager> {
   const ledger = new Ledger({ token });
 
-  const headers = {
-    Authorization: `Bearer ${token.toString()}`,
-    "Content-Type": "application/json",
-  };
-
-  const post = (url: string, options = {}) => {
-    Object.assign(options, { method: "POST", headers });
-    return fetch(url, options);
-  };
-
   const fetchPublicToken = async () => {
     const response = await fetch("/.hub/v1/public/token", { method: "POST" });
     const jsonResp = await response.json();
@@ -147,13 +137,13 @@ async function ChatManager(
 
   const getDefaultParties = async () => {
     const response = await fetch("/.hub/v1/default-parties");
-    const jsonResp: any = await response.json();
+    const jsonResp: { result: PartyInfo[] } = await response.json();
 
-    const publicPartyResponse = jsonResp["result"].find(
-      (p: any) => p["displayName"] === "Public",
+    const publicPartyResponse = jsonResp.result.find(
+      (p) => p.displayName === "Public",
     );
-    const userAdminPartyResponse = jsonResp["result"].find(
-      (p: any) => p["displayName"] === "UserAdmin",
+    const userAdminPartyResponse = jsonResp.result.find(
+      (p) => p.displayName === "UserAdmin",
     );
     if (!publicPartyResponse) {
       throw new Error("response missing Public party");
@@ -163,8 +153,8 @@ async function ChatManager(
     }
 
     return {
-      publicParty: publicPartyResponse["identifier"],
-      userAdminParty: userAdminPartyResponse["identifier"],
+      publicParty: publicPartyResponse.identifier,
+      userAdminParty: userAdminPartyResponse.identifier,
     };
   };
 
@@ -187,16 +177,7 @@ async function ChatManager(
 
   const publicToken = await fetchPublicToken();
   localStorage.setItem("public.token", publicToken);
-
-  const publicHeaders = {
-    Authorization: `Bearer ${publicToken.toString()}`,
-    "Content-Type": "application/json",
-  };
-
-  const postPublic = (url: string, options = {}) => {
-    Object.assign(options, { method: "POST", headers: publicHeaders });
-    return fetch(url, options);
-  };
+  const ledgerPublic = new Ledger({ token: publicToken });
 
   const userName = parseUserName(token);
   await createUserAccountRequest(operatorId, userName);
@@ -207,22 +188,14 @@ async function ChatManager(
     let attempts = 0;
     const MAX_ATTEMPTS = 3;
     while (!user && attempts < MAX_ATTEMPTS) {
-      const userContractsResponse = await post("/v1/query", {
-        body: JSON.stringify({
-          templateIds: [V4.User.templateId, V4.UserInvitation.templateId],
-        }),
-      });
-      const userContracts = await userContractsResponse.json();
+      const userContracts = await ledger.query(V4.User);
+      const userInvitationContracts = await ledger.query(V4.UserInvitation);
 
-      user =
-        userContracts.result.find((u: any) =>
-          u.templateId.endsWith(V4.User.templateId),
-        ) ||
-        userContracts.result.find((ui: any) =>
-          ui.templateId.endsWith(V4.UserInvitation.templateId),
-        );
-
-      if (!user) {
+      if (userContracts.length) {
+        user = userContracts[0];
+      } else if (userInvitationContracts.length) {
+        user = userInvitationContracts[0];
+      } else {
         attempts += 1;
         await sleep(2000);
       }
@@ -244,73 +217,40 @@ async function ChatManager(
 
   const fetchUpdate = async () => {
     try {
-      const allContractsResponse = await post("/v1/query", {
-        body: JSON.stringify({
-          templateIds: [
-            V4.Chat.templateId,
-            V4.Message.templateId,
-            V4.User.templateId,
-            V4.AddressBook.templateId,
-            V4.SelfAlias.templateId,
-          ],
-        }),
-      });
+      const userMessages = await ledger.query(V4.Message);
+      const userMessageContractIds = userMessages.map((u) => u.contractId);
 
-      const allPublicContractsResponse = await postPublic("/v1/query", {
-        body: JSON.stringify({
-          templateIds: [V4.SelfAlias.templateId, V4.Message.templateId],
-        }),
-      });
-
-      const allContracts = await allContractsResponse.json();
-      const allPublicContracts = await allPublicContractsResponse.json();
-
-      const userMessages = allContracts.result.filter((m: any) =>
-        m.templateId.endsWith(V4.Message.templateId),
-      );
-      const userMessageContractIds = userMessages.map((u: any) => u.contractId);
-
-      const publicMessages = allPublicContracts.result.filter(
-        (m: any) =>
-          m.templateId.endsWith(V4.Message.templateId) &&
-          !userMessageContractIds.includes(m.contractId),
+      const publicMessages = (await ledgerPublic.query(V4.Message)).filter(
+        (m) => !userMessageContractIds.includes(m.contractId),
       );
 
-      const chats = allContracts.result.filter((c: any) =>
-        c.templateId.endsWith(V4.Chat.templateId),
-      );
-      const user = allContracts.result.find((u: any) =>
-        u.templateId.endsWith(V4.User.templateId),
-      );
-      const selfAlias = allContracts.result.find((ma: any) =>
-        ma.templateId.endsWith(V4.SelfAlias.templateId),
-      );
-      const addressBook = allContracts.result.find((ma: any) =>
-        ma.templateId.endsWith(V4.AddressBook.templateId),
-      );
+      const chats = await ledger.query(V4.Chat);
+      const user = (await ledger.query(V4.User))[0];
+      const selfAlias = (await ledger.query(V4.SelfAlias))[0];
+      const addressBook = (await ledger.query(V4.AddressBook))[0];
 
       const model: Chat[] = chats
-        .sort((c1: any, c2: any) =>
+        .sort((c1, c2) =>
           c1.payload.name > c2.payload.name
             ? 1
             : c1.payload.name < c2.payload.name
               ? -1
               : 0,
         )
-        .map((c: any) => {
+        .map((c) => {
           const messages = c.payload.isPublic
             ? userMessages.concat(publicMessages)
             : userMessages;
           const chatMessages = messages
-            .filter((m: any) => m.payload.chatId === c.payload.chatId)
-            .sort((m1: any, m2: any) =>
+            .filter((m) => m.payload.chatId === c.payload.chatId)
+            .sort((m1, m2) =>
               m1.payload.postedAt > m2.payload.postedAt
                 ? 1
                 : m1.payload.postedAt < m2.payload.postedAt
                   ? -1
                   : 0,
             )
-            .map((m: any) =>
+            .map((m) =>
               Object.assign({}, { ...m.payload, contractId: m.contractId }),
             );
           return {
@@ -325,19 +265,17 @@ async function ChatManager(
           };
         });
 
-      const selfAliases = allPublicContracts.result.filter((ma: any) =>
-        ma.templateId.endsWith(V4.SelfAlias.templateId),
-      );
+      const selfAliases = await ledgerPublic.query(V4.SelfAlias);
 
-      const publicAliases = selfAliases.reduce((acc: any, curr: any) => {
+      const publicAliases: Aliases = selfAliases.reduce((acc, curr) => {
         acc[curr.payload.user] = curr.payload.alias;
         return acc;
-      }, {});
+      }, {} as Aliases);
 
       let aliases = Object.assign(
         {},
         publicAliases,
-        addressBook.payload.contacts.textMap,
+        addressBook.payload.contacts,
       );
       if (selfAlias) {
         aliases[selfAlias.payload.user] = selfAlias.payload.alias;
