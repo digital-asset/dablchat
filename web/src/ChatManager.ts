@@ -140,12 +140,9 @@ async function ChatManager(
   };
 
   const fetchPublicToken = async () => {
-    const response = await fetch(
-      "/.hub/v1/public/token",
-      { method: "POST" },
-    );
+    const response = await fetch("/.hub/v1/public/token", { method: "POST" });
     const jsonResp = await response.json();
-    return jsonResp['access_token'];
+    return jsonResp["access_token"];
   };
 
   const getDefaultParties = async () => {
