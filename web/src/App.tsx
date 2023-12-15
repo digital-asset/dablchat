@@ -1,4 +1,4 @@
-import { BaseSyntheticEvent, Component, FormEvent, KeyboardEvent } from "react";
+import { BaseSyntheticEvent, Component, KeyboardEvent } from "react";
 import ChatManager, { Aliases, Chat, Message, User } from "./ChatManager";
 import Login from "./components/Login";
 import NewUser from "./components/NewUser";
@@ -80,8 +80,6 @@ interface CurrentChatState {
 }
 
 interface State extends CurrentChatState {
-  partyId: string;
-  token: string;
   partyName: string;
   showLogin: boolean;
   showWelcome: boolean;
@@ -92,8 +90,6 @@ interface State extends CurrentChatState {
 }
 
 const INITIAL_STATE: State = {
-  partyId: "",
-  token: "",
   partyName: "",
   showLogin: true,
   showWelcome: false,
@@ -117,7 +113,6 @@ class App extends Component<Props, State> {
     const token = cookies.get(DAMLHUB_LEDGER_ACCESS_TOKEN);
 
     this.handleInput = this.handleInput.bind(this);
-    this.handleSubmit = this.handleSubmit.bind(this);
     this.handleAcceptInvitation = this.handleAcceptInvitation.bind(this);
     this.handleSwitchToChat = this.handleSwitchToChat.bind(this);
     this.handleSubmitMessage = this.handleSubmitMessage.bind(this);
@@ -130,8 +125,6 @@ class App extends Component<Props, State> {
 
     if (token) {
       // @ts-ignore
-      this.state.token = token;
-      // @ts-ignore
       this.state.showLogin = false;
       this.createChatManager(token);
     }
@@ -142,13 +135,6 @@ class App extends Component<Props, State> {
 
     // @ts-ignore
     this.setState({ [name]: value });
-  }
-
-  handleSubmit(event: FormEvent) {
-    // @ts-ignore
-    const { token } = event.target;
-    event.preventDefault();
-    this.createChatManager(token.value);
   }
 
   handleAcceptInvitation(event: BaseSyntheticEvent) {
@@ -170,8 +156,6 @@ class App extends Component<Props, State> {
     cookies.remove(DAMLHUB_LEDGER_ACCESS_TOKEN);
     this.stopPolling();
     this.setState({
-      partyId: "",
-      token: "",
       partyName: "",
       showLogin: true,
       showWelcome: false,
@@ -197,7 +181,6 @@ class App extends Component<Props, State> {
 
   updateUser(user: User, onboarded: boolean) {
     this.setState({
-      partyId: user.user,
       partyName: user.userName,
       chatUser: user,
       showLogin: false,
@@ -471,8 +454,6 @@ class App extends Component<Props, State> {
 
   render() {
     const {
-      token,
-      partyId,
       partyName,
       showLogin,
       showWelcome,
@@ -579,13 +560,7 @@ class App extends Component<Props, State> {
           ) : null}
         </aside>
         {showLogin ? (
-          <Login
-            partyId={partyId}
-            token={token}
-            handleUserInput={this.handleInput}
-            handleTokenInput={this.handleInput}
-            handleSubmit={this.handleSubmit}
-          />
+          <Login />
         ) : showWelcome ? (
           <NewUser
             partyName={partyName}
