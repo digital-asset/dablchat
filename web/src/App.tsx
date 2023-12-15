@@ -21,6 +21,11 @@ import emojisSettings from "./components/autocomplete/emojis";
 import commandsSettings from "./components/autocomplete/commands";
 import userSettings from "./components/autocomplete/users";
 import { Party } from "@daml/types";
+import { Cookies } from "react-cookie";
+
+const DAMLHUB_LEDGER_ACCESS_TOKEN = "DAMLHUB_LEDGER_ACCESS_TOKEN";
+// TODO: Use the React hooks instead
+const cookies = new Cookies();
 
 const Loading = () => <div>Loading</div>;
 
@@ -109,14 +114,7 @@ class App extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = INITIAL_STATE;
-    const tokenCookiePair =
-      document.cookie
-        .split("; ")
-        .find((row) => row.startsWith("DAMLHUB_LEDGER_ACCESS_TOKEN")) || "";
-    const tokenCookieSecret = tokenCookiePair.slice(
-      tokenCookiePair.indexOf("=") + 1,
-    );
-    const token = tokenCookieSecret || localStorage.getItem("party.token");
+    const token = cookies.get(DAMLHUB_LEDGER_ACCESS_TOKEN);
 
     this.handleInput = this.handleInput.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
@@ -168,7 +166,8 @@ class App extends Component<Props, State> {
 
   handleLogout(event: BaseSyntheticEvent) {
     event.preventDefault();
-    localStorage.removeItem("party.token");
+
+    cookies.remove(DAMLHUB_LEDGER_ACCESS_TOKEN);
     this.stopPolling();
     this.setState({
       partyId: "",
@@ -190,7 +189,6 @@ class App extends Component<Props, State> {
     try {
       this.chatManager = new ChatManager(token, this.updateState);
       await this.chatManager.init(this.updateUser);
-      localStorage.setItem("party.token", token);
     } catch (e: any) {
       console.error(e);
       alert(e.message || "Unable to connect to chat");
