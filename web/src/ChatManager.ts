@@ -189,36 +189,6 @@ class ChatManager {
     }
   }
 
-  async archiveBotRequest(
-    user: { contractId: ContractId<V4.User> },
-    botName: string,
-    enabled: boolean,
-    message: string,
-  ): Promise<void> {
-    await this.ledger.exercise(
-      V4.User.User_RequestArchiveBot,
-      user.contractId,
-      {
-        botName,
-        enabled,
-        message,
-      },
-    );
-  }
-
-  async updateUserSettings(
-    user: { contractId: ContractId<V4.User> },
-    newArchiveMessagesAfter: V4.Duration,
-  ): Promise<void> {
-    await this.ledger.exercise(
-      V4.User.User_UpdateUserSettings,
-      user.contractId,
-      {
-        newArchiveMessagesAfter,
-      },
-    );
-  }
-
   async acceptInvitation(userInvitation: {
     contractId: ContractId<V4.UserInvitation>;
   }): Promise<void> {
