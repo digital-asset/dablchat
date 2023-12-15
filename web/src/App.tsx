@@ -9,7 +9,6 @@ import ReactTextareaAutocomplete from "@webscopeio/react-textarea-autocomplete";
 import logoutIcon from "./icons/logout.svg";
 import lockIcon from "./icons/lock.svg";
 import publicIcon from "./icons/public.svg";
-import jwt_decode from "jwt-decode";
 import NoChat from "./components/NoChat";
 import "skeleton-css/css/normalize.css";
 import "skeleton-css/css/skeleton.css";
@@ -66,16 +65,6 @@ async function makeChatName() {
   return chatName;
 }
 
-const partyFromToken = (token: string) => {
-  try {
-    const decoded = jwt_decode<any>(token);
-    return decoded["https://daml.com/ledger-api"].actAs.shift();
-  } catch (e: any) {
-    console.log(e.message || "failed to extract party from jwt token");
-    return undefined;
-  }
-};
-
 interface Props {}
 
 interface CurrentChatState {
@@ -128,7 +117,6 @@ class App extends Component<Props, State> {
       tokenCookiePair.indexOf("=") + 1,
     );
     const token = tokenCookieSecret || localStorage.getItem("party.token");
-    const partyId = partyFromToken(token!) || localStorage.getItem("party.id");
 
     this.handleInput = this.handleInput.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
@@ -142,14 +130,12 @@ class App extends Component<Props, State> {
     this.startPolling = this.startPolling.bind(this);
     this.stopPolling = this.stopPolling.bind(this);
 
-    if (!!partyId && !!token) {
+    if (token) {
       // @ts-ignore
       this.state.token = token;
       // @ts-ignore
-      this.state.partyId = partyId;
-      // @ts-ignore
       this.state.showLogin = false;
-      this.createChatManager(partyId, token);
+      this.createChatManager(token);
     }
   }
 
@@ -162,9 +148,9 @@ class App extends Component<Props, State> {
 
   handleSubmit(event: FormEvent) {
     // @ts-ignore
-    const { partyId, token } = event.target;
+    const { token } = event.target;
     event.preventDefault();
-    this.createChatManager(partyId.value, token.value);
+    this.createChatManager(token.value);
   }
 
   handleAcceptInvitation(event: BaseSyntheticEvent) {
@@ -182,7 +168,6 @@ class App extends Component<Props, State> {
 
   handleLogout(event: BaseSyntheticEvent) {
     event.preventDefault();
-    localStorage.removeItem("party.id");
     localStorage.removeItem("party.token");
     this.stopPolling();
     this.setState({
@@ -201,11 +186,10 @@ class App extends Component<Props, State> {
     });
   }
 
-  async createChatManager(partyId: Party, token: string) {
+  async createChatManager(token: string) {
     try {
-      this.chatManager = new ChatManager(partyId, token, this.updateState);
+      this.chatManager = new ChatManager(token, this.updateState);
       await this.chatManager.init(this.updateUser);
-      localStorage.setItem("party.id", partyId);
       localStorage.setItem("party.token", token);
     } catch (e: any) {
       console.error(e);
