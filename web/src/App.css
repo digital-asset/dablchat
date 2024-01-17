@@ -343,15 +343,10 @@ textarea.message-input {
 
 .login {
   width: 500px;
+  padding: 32px;
   background-color: white;
   display: flex;
   align-items: center;
-}
-
-.login-form {
-  width: 100%;
-  margin-bottom: 0;
-  padding: 32px;
 }
 
 .login-form > * {
